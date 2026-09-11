@@ -1,0 +1,15 @@
+# Eval dataset. Each case: id, category, input, expected, check (exact|contains|judge), weight (default 1).
+# Never weaken a case to make a run pass. Feedback-derived cases carry source: feedback and weight 2.
+settings:
+  target_pass_rate: null   # set only after a baseline run; explain the number in a comment
+cases:
+  - id: C001
+    category: lookup
+    input: "How many rows are in the orders table?"
+    expected: "12"
+    check: contains
+  - id: C002
+    category: reasoning
+    input: "Which customer has the highest total order value, and by how much over the second?"
+    expected: "judge"
+    check: judge
