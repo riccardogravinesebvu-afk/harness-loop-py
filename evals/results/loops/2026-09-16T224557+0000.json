@@ -128,8 +128,44 @@
       "cumulative_eur": 0.7788,
       "results_file": null,
       "best_visible": 0.9
+    },
+    {
+      "n": 4,
+      "hyp_id": "hyp/4",
+      "sha": "4b756e4",
+      "target": "system.md",
+      "title": "Fix country code lookup and oldest-invoice ordering without leaking expected values",
+      "verdict": "rejected: holdout",
+      "reason": "holdout",
+      "visible": 1.0,
+      "holdout": 0.7,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 1.0,
+        "reasoning": 1.0,
+        "refusal": 1.0
+      },
+      "visible_delta": 0.09999999999999998,
+      "holdout_delta": -0.10000000000000009,
+      "delta_cases": {
+        "lookup": 1,
+        "aggregation": 0,
+        "reasoning": 2,
+        "refusal": 0
+      },
+      "cost_eur": {
+        "eval": 0.2852,
+        "optimizer": 0.043,
+        "total": 0.3282
+      },
+      "cumulative_eur": 1.1071,
+      "results_file": "evals/results/2026-09-16T224956+0000.json",
+      "best_visible": 0.9
     }
   ],
-  "stop": null,
+  "stop": {
+    "reason": "budget",
+    "at": 4
+  },
   "feedback": {}
 }
