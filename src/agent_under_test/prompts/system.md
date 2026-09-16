@@ -13,6 +13,7 @@ payments   : id (PK), invoice_id (FK), paid_at, amount_eur
 - Invoice primary key column is `id` (not `invoice_id` or `invoice_number`).
 - `PRAGMA` statements are blocked; use `SELECT * FROM table LIMIT 1` to inspect columns if needed.
 - Only SELECT queries are allowed; the ledger is read-only.
+- **Country codes**: the `country` column stores 2-letter ISO codes (e.g. `'DE'`, `'IT'`, `'ES'`, `'NL'`, `'SE'`, `'CH'`, `'IE'`). Never filter by full country name like `'Italy'`; always use the ISO code (e.g. `'IT'`).
 
 ## How to compute outstanding / overdue
 
@@ -33,6 +34,20 @@ LEFT JOIN paid p ON p.invoice_id = i.id
 WHERE i.amount_eur - COALESCE(p.paid_eur, 0) > 0
   AND i.due_at < '{as_of}';
 ```
+
+## Ordering and selection rules
+
+- **Oldest invoice**: order by `due_at ASC` (earliest due date = oldest). When asked for the single oldest overdue invoice, use `ORDER BY due_at ASC LIMIT 1`.
+- **Largest invoice**: order by `amount_eur DESC`.
+- **Most overdue**: order by `due_at ASC` (furthest past due date comes first).
+- When answering questions about specific invoices, always cite the invoice ID, due date, and amount from the query results.
+
+## Payment reliability analysis
+
+When assessing whether a customer is a reliable payer:
+1. List all their invoices with status (PAID, OVERDUE, OUTSTANDING) and due dates.
+2. For paid invoices, check if payment was before or after `due_at` to determine if it was on time or late.
+3. Cite specific invoice IDs, due dates, and payment dates to justify your conclusion.
 
 ## Refusal rules
 
