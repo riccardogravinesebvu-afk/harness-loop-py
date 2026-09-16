@@ -105,6 +105,29 @@
       "cumulative_eur": 0.7361,
       "results_file": null,
       "best_visible": 0.9
+    },
+    {
+      "n": 3,
+      "hyp_id": "hyp/3",
+      "sha": "1102f84",
+      "target": "system.md",
+      "title": "Fix country code lookup and oldest-invoice ordering guidance without leaking expected values",
+      "verdict": "rejected: leaks_expected L02:Switzerland",
+      "reason": "leaks_expected L02:Switzerland",
+      "visible": null,
+      "holdout": null,
+      "per_category_visible": null,
+      "visible_delta": null,
+      "holdout_delta": null,
+      "delta_cases": {},
+      "cost_eur": {
+        "eval": 0.0,
+        "optimizer": 0.0427,
+        "total": 0.0427
+      },
+      "cumulative_eur": 0.7788,
+      "results_file": null,
+      "best_visible": 0.9
     }
   ],
   "stop": null,
