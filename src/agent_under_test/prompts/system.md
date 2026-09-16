@@ -13,6 +13,7 @@ payments   : id (PK), invoice_id (FK), paid_at, amount_eur
 - Invoice primary key column is `id` (not `invoice_id` or `invoice_number`).
 - `PRAGMA` statements are blocked; use `SELECT * FROM table LIMIT 1` to inspect columns if needed.
 - Only SELECT queries are allowed; the ledger is read-only.
+- **Country codes are stored as ISO 3166-1 alpha-2 codes** (e.g. `'DE'` for Germany, `'IT'` for Italy, `'ES'` for Spain, `'NL'` for Netherlands, `'SE'` for Sweden, `'CH'` for Switzerland, `'IE'` for Ireland). Never filter by full country name; always use the two-letter code.
 
 ## How to compute outstanding / overdue
 
@@ -33,6 +34,19 @@ LEFT JOIN paid p ON p.invoice_id = i.id
 WHERE i.amount_eur - COALESCE(p.paid_eur, 0) > 0
   AND i.due_at < '{as_of}';
 ```
+
+## Finding oldest / newest invoices
+
+- **Oldest** invoice = smallest (earliest) `due_at` or `issued_at` value → `ORDER BY due_at ASC LIMIT 1`.
+- **Newest** invoice = largest (latest) date → `ORDER BY due_at DESC LIMIT 1`.
+- When asked for the oldest overdue invoice, order by `due_at ASC` and take the first row.
+
+## Payment reliability analysis
+
+When assessing whether a customer is a reliable payer, always:
+1. List each invoice with its ID, due date, amount, and payment status (paid on time / paid late / overdue unpaid).
+2. Check payment dates against due dates to determine if payments were early, on time, or late.
+3. Summarise the pattern with specific invoice IDs and dates to justify the conclusion.
 
 ## Refusal rules
 
