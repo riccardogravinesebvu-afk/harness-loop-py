@@ -32,6 +32,7 @@ ignore = ["S101"]
 [tool.ruff.lint.per-file-ignores]
 ".claude/hooks/*" = ["S603", "S607"]
 "evals/run.py" = ["S607"]
+"tests/*" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

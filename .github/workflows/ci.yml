@@ -11,7 +11,7 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run pytest -q
       # Evals need a provider key: run only when the secret is present, never fabricate results.
-      - if: ${{ secrets.OPENROUTER_API_KEY != '' }}
+      - if: ${{ secrets.LLM_API_KEY != '' }}
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
         run: uv run python -m evals.run --seed 42

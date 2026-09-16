@@ -1,0 +1,9 @@
+# Tool descriptions: the optimizer may edit this file. Keys must match the tool names.
+run_sql: |
+  Run a SQL query on the ledger database.
+lookup_customer: |
+  Look up a customer by name.
+compute: |
+  Evaluate an arithmetic expression.
+final_answer: |
+  Give the final answer to the user.
