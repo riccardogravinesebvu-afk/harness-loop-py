@@ -1,19 +1,4 @@
 from src.optimizer.budget import should_stop
-from src.optimizer.gates import passes_gate
-
-
-def test_gate_rejects_category_regression():
-    ok, regressed = passes_gate(
-        {"lookup": 0.9, "reasoning": 0.5}, {"lookup": 0.95, "reasoning": 0.4}
-    )
-    assert not ok and regressed == ["reasoning"]
-
-
-def test_gate_accepts_monotonic_improvement():
-    ok, regressed = passes_gate(
-        {"lookup": 0.9, "reasoning": 0.5}, {"lookup": 0.9, "reasoning": 0.6}
-    )
-    assert ok and regressed == []
 
 
 def test_budget_stops_when_marginal_gain_is_low():

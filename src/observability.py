@@ -38,11 +38,11 @@ def trace_id(seed: str) -> str:
 
 
 @contextmanager
-def trace(name: str, tid: str, tags: list[str], metadata: dict) -> Iterator[tuple]:
-    """Yields (root span, callbacks). Root span is `eval_context`; the trace is named `name`."""
-    root = client().start_as_current_observation(
-        name="eval_context", trace_context={"trace_id": tid}
-    )
+def trace(
+    name: str, tid: str, tags: list[str], metadata: dict, span_name: str = "eval_context"
+) -> Iterator[tuple]:
+    """Yields (root span, callbacks). The root span is `span_name`; the trace is named `name`."""
+    root = client().start_as_current_observation(name=span_name, trace_context={"trace_id": tid})
     with root as span, propagate_attributes(trace_name=name, tags=tags, metadata=metadata):
         yield span, ([CallbackHandler()] if enabled() else [])
 

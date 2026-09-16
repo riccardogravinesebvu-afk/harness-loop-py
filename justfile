@@ -12,3 +12,6 @@ test:
 
 evals seed="42":
     uv run python -m evals.run --seed {{seed}}
+
+loop max="12":
+    uv run python -m src.optimizer.loop --max-iterations {{max}}
