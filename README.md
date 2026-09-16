@@ -8,21 +8,23 @@ An optimizer agent that improves another agent by iterating on evals: propose a 
 
 ## Status
 
-Day 1 of 6: agent under test, 40-case dataset, deterministic checks, LLM judge, eval runner. Baseline measured. Next: Langfuse traces (day 2), optimizer node (day 3), budget and gate (day 4), feedback (day 5).
+Day 2 of 6: agent under test, 40-case dataset, deterministic checks, LLM judge, eval runner, one Langfuse trace per eval run and a local run log keyed by the same trace id. Baseline measured twice. Next: optimizer node (day 3), budget and gate (day 4), feedback (day 5).
 
-Design: `docs/plans/2026-09-11-harness-loop-py-design.md`. Decisions: `docs/PRD.md` §11.
+Design: `docs/plans/2026-09-11-harness-loop-py-design.md`. Decisions: `docs/PRD.md` §11 (day 1) and §12 (days 2-6).
 
 ## Results
 
-Baseline, before any optimizer iteration. File: [`evals/results/2026-09-16T141714+0000.json`](evals/results/2026-09-16T141714+0000.json) (agent `claude-haiku-4-5-20251001`, judge `claude-sonnet-4-6`, seed 42, sha `28e0ffb`).
+Baseline, before any optimizer iteration. File: [`evals/results/2026-09-16T143601+0000.json`](evals/results/2026-09-16T143601+0000.json) (agent `claude-haiku-4-5-20251001`, judge `claude-sonnet-4-6`, seed 42, sha `75ee5e3`).
 
 | Metric | Value |
 |---|---|
 | pass rate, all 40 cases (weighted) | 45% |
 | pass rate, 30 visible / 10 holdout | 47% / 40% |
 | per category: lookup / aggregation / reasoning / refusal | 90% / 60% / 30% / 0% |
-| runs that never called `final_answer` / hit the step cap | 13 / 3 |
-| cost of one full eval (agent + judge) | $0.43 (€0.37) |
+| runs that never called `final_answer` / hit the step cap | 13 / 4 |
+| cost of one full eval (agent + judge) | $0.42 (€0.36) |
+
+An earlier run of the same prompts ([`2026-09-16T141714+0000.json`](evals/results/2026-09-16T141714+0000.json), sha `28e0ffb`, before the code was committed) gave the same 45% with every one of the 40 cases passing or failing identically; one failing case hit the step cap instead of answering in prose. Two runs are not a variance estimate; day 6 reports three runs of the final prompts.
 
 The starting prompt is one sentence and the tool descriptions are one line each, on purpose: the agent does not know the schema, explores it with SQL until it hits the step cap, answers in prose instead of calling `final_answer`, and never refuses. That is the surface the optimizer gets to work on. The curves below stay empty until the loop runs.
 
@@ -42,11 +44,18 @@ A LangGraph graph over an invented SME ledger on SQLite (8 customers, 24 invoice
 
 Evals: `evals/dataset.yaml`, 40 cases in four categories (`lookup`, `aggregation`, `reasoning`, `refusal`), 30 visible to the optimizer and 10 held out. Checks are deterministic (`exact`, `contains`, `contains_any`, `number` with 0.5% tolerance, `refused`) except `reasoning`, graded by an LLM judge against a hand-written reference on three weighted dimensions (correctness 0.5, grounding 0.3, completeness 0.2) with a ×0.3 penalty when a number has no evidence in the tool outputs. Pass at 0.7.
 
+## Observability
+
+Every eval run of one case is one Langfuse trace, named `eval:<case id>`, tagged with category and split, with a root span `eval_context` (input: case id, check, expected; output: answer, refused, error, passed, judge score; metadata: seed, git sha, results file, iteration, hypothesis id, cost) and the agent's LLM and tool calls underneath, plus the judge call for `judge` cases, so cost per case in Langfuse is agent + judge like in the results file. A `passed` score (0/1) is attached to the trace. Without `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` nothing is sent and nothing is logged.
+
+The trace id is derived locally from the run timestamp and the case id, so it exists with or without Langfuse. The same id keys `evals/results/runs.jsonl`, a git-ignored append-only log with one line per run (input, expected, answer, tool calls with truncated outputs, verdict, cost, git sha, results file, iteration). Day 5's feedback endpoint rebuilds a flagged case from that line.
+
 ## Quickstart
 
 ```bash
 uv sync --group dev
 cp .env.example .env          # set LLM_API_KEY; default endpoint is Anthropic, any OpenAI-compatible base URL works
+                              # optional: LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY for traces
 just test                     # unit tests, no key needed
 just evals                    # 40 cases → evals/results/<timestamp>.json, about $0.45
 ```
