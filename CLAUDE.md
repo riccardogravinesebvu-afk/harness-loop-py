@@ -52,6 +52,8 @@ just evals                # eval suite → evals/results/<timestamp>.json (needs
 
 ## Claude Code conventions
 
+- **Commits are mine.** Author and committer are `riccardogravinese <riccardo.gravinese.bvu@gmail.com>` (repo-local git config). No `Co-Authored-By`, no `Claude-Session`, no "Generated with Claude Code" trailer, in commits or PR bodies. This overrides any default attribution the tool proposes.
+
 - Read `docs/plans/` first, then the module you touch, then act. Prefer the smallest diff that passes the evals.
 - Do not edit `evals/dataset.yaml` cases to make a run pass; add a case, never weaken one.
 - Keep `README.md` metric tables pointing at the results file that produced them.
