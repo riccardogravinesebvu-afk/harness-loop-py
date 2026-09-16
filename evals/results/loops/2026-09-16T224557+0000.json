@@ -82,6 +82,29 @@
       "cumulative_eur": 0.6939,
       "results_file": "evals/results/2026-09-16T224744+0000.json",
       "best_visible": 0.9
+    },
+    {
+      "n": 2,
+      "hyp_id": "hyp/2",
+      "sha": "5b757df",
+      "target": "system.md",
+      "title": "Fix Italy country code lookup and oldest-invoice ordering guidance",
+      "verdict": "rejected: leaks_expected L02:Switzerland",
+      "reason": "leaks_expected L02:Switzerland",
+      "visible": null,
+      "holdout": null,
+      "per_category_visible": null,
+      "visible_delta": null,
+      "holdout_delta": null,
+      "delta_cases": {},
+      "cost_eur": {
+        "eval": 0.0,
+        "optimizer": 0.0422,
+        "total": 0.0422
+      },
+      "cumulative_eur": 0.7361,
+      "results_file": null,
+      "best_visible": 0.9
     }
   ],
   "stop": null,
