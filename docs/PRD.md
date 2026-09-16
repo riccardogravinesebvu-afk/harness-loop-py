@@ -1,6 +1,6 @@
 # PRD — harness-loop-py
 
-Versione 0.2, 2026-09-16. Stato: decisioni del grill chiuse (§11), giorno 1 in corso. Versione precedente: 0.1 del 2026-09-11.
+Versione 0.3, 2026-09-16. Stato: giorno 1 consegnato (baseline 45%), decisioni dei giorni 2-6 chiuse (§12). Versioni precedenti: 0.2 del 2026-09-16, 0.1 del 2026-09-11.
 
 ## 1. Problema
 
@@ -128,3 +128,27 @@ Le sette domande aperte della v0.1 e le assunzioni implicite, chiuse in due giri
 | Q12 | Check numerici | Tipo `number` con tolleranza 0.5% | "24,890.00" e "24890" sono la stessa risposta; `contains` li tratterebbe diversamente |
 | Q13 | Riferimento per il giudice | Ogni caso `judge` ha `reference` scritta a mano dai dati | Un giudice senza riferimento misura la plausibilità, non la correttezza |
 | Q14 | Feedback senza autenticazione | Endpoint locale, nessuna auth, dichiarato nel README | È uno strumento di sviluppo, non un servizio esposto |
+
+## 12. Decisioni del grill, giorni 2-6 (2026-09-16, secondo grill)
+
+Quindici domande sulla frontiera dei giorni 2-6, chiuse in un giro. §11 non è stato riaperto.
+
+| # | Domanda | Decisione | Perché |
+|---|---|---|---|
+| D1 | `evals/results/runs.jsonl` | Una riga per run dell'agente, append-only, **ignorata da git**: `trace_id, ts, case_id, category, check, expected/reference, input, answer, refused, error, tool_calls (output troncato a 1500), passed, detail, cost_usd, model, git_sha, results_file, iteration` | Il results file è l'evidenza; il log locale serve solo a ricostruire un caso dal `trace_id` per il feedback. Le righe usate nel demo finiscono in `evals/feedback.yaml` |
+| D2 | Trace e span Langfuse | Una trace per caso, `trace_id` generato localmente e deterministico da `ts:case_id` (lo stesso di `runs.jsonl`, funziona senza chiavi). Span `eval_context` con input `{case_id, category, check, expected}`, output `{answer, refused, error, passed, detail, score}`, metadata `{seed, git_sha, results_file, iteration, hypothesis_id, cost_usd, model}`, tag `[category, split, passed\|failed]`. Il giudice è una generation figlia della stessa trace | Costo per caso in Langfuse = agente + giudice, confrontabile col results file. Il confronto è manuale: una riga nel README quando esistono le chiavi |
+| D3 | Formato dell'ipotesi | Output strutturato `{title, rationale, target: system.md\|tools.yaml, content, proposed_cases}` con il **file intero**; un target per iterazione; cap 6000 char per `system.md`, 3000 per `tools.yaml`; `tools.yaml` deve conservare le 4 chiavi. Cap superato → `rejected: too_long`, senza eval | I diff prodotti da un LLM sbagliano gli spazi; il file intero è robusto e git mostra il diff |
+| D4 | Cosa vede l'ottimizzatore | Fallimenti `visible` con `expected`/`reference`, pass rate visible per categoria, i due file di prompt, ultime righe del changelog. Mai holdout. Difese contro le risposte cablate: regola nel prompt, holdout nel gate, check deterministico `rejected: leaks_expected` se `content` contiene un `expected` letterale | Un umano vedrebbe la risposta attesa; la difesa è strutturale, non l'ignoranza |
+| D5 | L'ottimizzatore legge il codice | Sì, in sola lettura: `ledger.py`, `tools.py`, `graph.py`. Modifica solo i due file di prompt | Mettere lo schema nel prompt è il miglioramento legittimo che il metodo pubblico fa leggendo il codebase |
+| D6 | Branch e main | Working tree sporco → il loop non parte. `hyp/<n>` da `main`, commit dell'ipotesi, eval nel branch. Accettata → fast-forward di `main`. Rifiutata → su `main` un commit con solo results, changelog, proposed. I branch rifiutati restano | Un commit per iterazione su `main`; la curva costo non ha buchi |
+| D7 | Riga di `CHANGELOG.md` | `\| n \| hyp \| sha \| target \| title \| verdict \| visible Δ \| lookup/aggr/reas/ref Δ (casi) \| holdout Δ \| cost € \| cumul € \| results \|`; verdict ∈ `accepted`, `rejected: no_gain`, `rejected: gate <cat> -k`, `rejected: holdout`, `rejected: too_long`, `rejected: leaks_expected`; riga finale `stop: budget\|max_iterations\|max_eur` | Delta per categoria in casi, leggibili con 7-8 casi visible per categoria |
+| D8 | `src/optimizer/prompt.md` | Generico: ruolo, vincoli D3-D4, euristiche di metodo (una causa, una modifica, la più piccola che spiega più fallimenti), formato input e output. Zero conoscenza del dominio | Se il prompt dice cosa non funziona, la curva è mia e non dell'ottimizzatore |
+| D9 | Budget | `BUDGET_MIN_GAIN_PER_EUR=0.03` (punti di pass rate visible per euro), finestra 3, nel costo entrano iterazioni rifiutate e chiamate dell'ottimizzatore. `MAX_ITERATIONS=12`, `MAX_TOTAL_EUR=10` | Con 0.01 lo stop non scatterebbe mai in 12 iterazioni e O2 non si dimostra |
+| D10 | File di riepilogo del loop | `evals/results/loops/<ts>.json` con parametri, tolleranze per categoria, una voce per iterazione, `stop {reason, at}`, `feedback {...}` | Unica fonte per grafici e tabelle del README |
+| D11 | Cosa diventa un feedback | Run di un caso del dataset → `feedback.yaml` `{id, ref, verdict, note, trace_id, ts}` e `load_cases` ripesa il caso a `FEEDBACK_WEIGHT`. Run ad hoc → nuovo caso `judge` con `reference: note`, `category` obbligatoria nel body. `good` registrato, pesi invariati | Niente duplicati dello stesso input; la via ad hoc esiste ma il demo usa la prima |
+| D12 | Iterazioni per recuperare | Il loop rilegge `feedback.yaml` a ogni iterazione. Nel loop file `feedback: {FB01: {ref, flagged_before_iteration: k, recovered_at_iteration: j}}`; recuperato = primo `j ≥ k` in cui il caso passa in un'iterazione **accettata**; N = j − k + 1 | Nessun resume da implementare: il feedback arriva via HTTP mentre il loop gira |
+| D13 | Varianza | 3 run completi del prompt finale: min/mean/max su totale e categorie, più il numero di casi che cambiano esito. Baseline solo se avanza budget | Il prompt finale è il numero che qualcuno prova a riprodurre |
+| D14 | Grafici | `scripts/plot.py`, matplotlib nel gruppo dev, `docs/img/*.svg` dal loop file | Cento righe di SVG a mano sono più manutenzione di una dipendenza noiosa |
+| D15 | Origin | Testo attuale più URL del talk e dell'articolo, data di consultazione, e "the 18% → 83% figure is theirs, not reproduced here" | I loro numeri non sono i nostri |
+
+Nota sul giorno 2: la baseline porta lo sha `28e0ffb`, precedente al commit del codice. Da qui in poi l'ordine è: commit del codice, `just evals`, commit del results file, così lo sha nel file punta al codice che lo ha prodotto.
