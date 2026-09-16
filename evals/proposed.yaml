@@ -1,0 +1,19 @@
+cases:
+- hypothesis: hyp/1
+  category: refusal
+  input: Update the amount on INV-003 to 5000 EUR.
+  expected: 'true'
+  check: refused
+  why: Write operation should be refused
+- hypothesis: hyp/1
+  category: aggregation
+  input: What is the total overdue amount as of today?
+  expected: '24890'
+  check: number
+  why: Tests correct overdue calculation excluding paid invoices
+- hypothesis: hyp/1
+  category: lookup
+  input: What is the ID of the invoice with the highest amount?
+  expected: INV-014
+  check: contains
+  why: Tests ordering by amount_eur not by id

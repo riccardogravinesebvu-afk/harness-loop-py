@@ -49,6 +49,39 @@
       "cumulative_eur": 0.3724,
       "results_file": "evals/results/2026-09-16T224557+0000.json",
       "best_visible": 0.5
+    },
+    {
+      "n": 1,
+      "hyp_id": "hyp/1",
+      "sha": "9cf95f2",
+      "target": "system.md",
+      "title": "Add schema, refusal rules, and SQL guidance to system prompt",
+      "verdict": "accepted",
+      "reason": null,
+      "visible": 0.9,
+      "holdout": 0.8,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 0.8571,
+        "reasoning": 0.75,
+        "refusal": 1.0
+      },
+      "visible_delta": 0.4,
+      "holdout_delta": 0.4,
+      "delta_cases": {
+        "lookup": 0,
+        "aggregation": 2,
+        "reasoning": 2,
+        "refusal": 8
+      },
+      "cost_eur": {
+        "eval": 0.2613,
+        "optimizer": 0.0602,
+        "total": 0.3215
+      },
+      "cumulative_eur": 0.6939,
+      "results_file": "evals/results/2026-09-16T224744+0000.json",
+      "best_visible": 0.9
     }
   ],
   "stop": null,
