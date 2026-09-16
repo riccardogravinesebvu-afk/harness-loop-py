@@ -114,7 +114,9 @@ def _collect(state: dict, latency: float, model: str) -> AgentResult:
     return AgentResult(answer=str(last.content), error="no_final_answer", **base)
 
 
-async def run(question: str, graph=None, seed: int | None = None) -> AgentResult:
+async def run(
+    question: str, graph=None, seed: int | None = None, callbacks: list | None = None
+) -> AgentResult:
     graph = graph or build_graph(seed)
     t0 = time.perf_counter()
     state = await graph.ainvoke(
@@ -123,6 +125,6 @@ async def run(question: str, graph=None, seed: int | None = None) -> AgentResult
             "steps": 0,
             "error": None,
         },
-        config={"recursion_limit": 2 * MAX_STEPS + 4},
+        config={"recursion_limit": 2 * MAX_STEPS + 4, "callbacks": callbacks or []},
     )
     return _collect(state, time.perf_counter() - t0, model_for("agent"))

@@ -54,7 +54,13 @@ def _fmt_tools(tool_calls: list) -> str:
     return "\n".join(f"{c.name}({c.args}) -> {c.output[:1500]}" for c in tool_calls)
 
 
-async def judge(case: dict, answer: str, tool_calls: list, seed: int | None = None) -> dict:
+async def judge(
+    case: dict,
+    answer: str,
+    tool_calls: list,
+    seed: int | None = None,
+    callbacks: list | None = None,
+) -> dict:
     llm = make_chat("judge", seed=seed).with_structured_output(
         Verdict, method="function_calling", include_raw=True
     )
@@ -62,7 +68,7 @@ async def judge(case: dict, answer: str, tool_calls: list, seed: int | None = No
         question=case["input"], reference=case["reference"], tools=_fmt_tools(tool_calls),
         answer=answer or "(empty)",
     )  # fmt: skip
-    res = await llm.ainvoke(prompt)
+    res = await llm.ainvoke(prompt, config={"callbacks": callbacks or []})
     v: Verdict = res["parsed"]
     u = res["raw"].usage_metadata or {}
     cost, _ = cost_usd(model_for("judge"), u.get("input_tokens", 0), u.get("output_tokens", 0))
