@@ -72,10 +72,9 @@ async def test_accept_then_reject_then_stop(clone, monkeypatch):
     assert repo.active_branch.name == "main" and not repo.is_dirty() and not repo.untracked_files
     assert {b.name for b in repo.branches} >= {"main", "hyp/1", "hyp/2"}
     assert "final_answer" in (clone / "src/agent_under_test/prompts/system.md").read_text()
-    rows = [ln for ln in (clone / "CHANGELOG.md").read_text().splitlines() if ln.startswith("| ")][
-        1:
-    ]
-    assert len(rows) == 2 and "| accepted |" in rows[0] and "rejected: no_gain" in rows[1]
+    rows = [ln for ln in (clone / "CHANGELOG.md").read_text().splitlines() if ln.startswith("| ")]
+    rows = rows[-2:]  # the clone carries the real CHANGELOG; only the two new rows matter
+    assert "| accepted |" in rows[0] and "rejected: no_gain" in rows[1]
     assert "+13.3pp" in rows[0] and "| 0/0/0/+4 |" in rows[0]
     doc = json.loads((clone / "evals/results/loops/T.json").read_text())
     assert [i["verdict"] for i in doc["iterations"]] == [
