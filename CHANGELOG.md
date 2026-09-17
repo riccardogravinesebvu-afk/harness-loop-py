@@ -13,3 +13,7 @@ stop: budget after hyp/4 (loop 2026-09-16T224557+0000, 1.11 €)
 
 | 5 | hyp/5 | fc222c4 | system.md | Fix country code lookup by teaching agent that country is stored as ISO 2-letter code | rejected: leaks_expected L02:Switzerland | — | — | — | 0.04 | 0.30 | — |
 | 6 | hyp/6 | 270ea33 | system.md | Fix country code lookup and oldest-invoice ordering without leaking expected values | rejected: leaks_expected L02:Switzerland | — | — | — | 0.05 | 0.35 | — |
+| 7 | hyp/7 | 995082c | system.md | Fix country code lookup and oldest-invoice ordering without leaking expected values | rejected: leaks_expected L02:Switzerland | — | — | — | 0.04 | 0.39 | — |
+
+stop: budget after hyp/7 (loop 2026-09-17T085216+0000, 0.39 €)
+
