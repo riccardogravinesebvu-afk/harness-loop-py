@@ -115,9 +115,35 @@
       "cumulative_eur": 0.8577,
       "results_file": "evals/results/2026-09-17T163314+0000.json",
       "best_visible": 0.9355
+    },
+    {
+      "n": 13,
+      "hyp_id": "hyp/13",
+      "sha": "bb5b760",
+      "target": "system.md",
+      "title": "Teach agent to compute elapsed days for overdue invoices using compute tool",
+      "verdict": "rejected: leaks_expected R03:2026",
+      "reason": "leaks_expected R03:2026",
+      "visible": null,
+      "holdout": null,
+      "per_category_visible": null,
+      "visible_delta": null,
+      "holdout_delta": null,
+      "delta_cases": {},
+      "cost_eur": {
+        "eval": 0.0,
+        "optimizer": 0.0406,
+        "total": 0.0406
+      },
+      "cumulative_eur": 0.8983,
+      "results_file": null,
+      "best_visible": 0.9355
     }
   ],
-  "stop": null,
+  "stop": {
+    "reason": "max_iterations",
+    "at": 13
+  },
   "feedback": {
     "FB01": {
       "ref": "L09",

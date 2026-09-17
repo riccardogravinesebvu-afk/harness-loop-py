@@ -162,3 +162,10 @@ cases:
   expected: Delta Logistics
   check: contains
   why: Tests that the agent uses country code 'NL' not 'Netherlands'.
+- hypothesis: hyp/13
+  category: reasoning
+  input: How many days overdue is INV-017 as of today?
+  expected: INV-017 was due 2026-05-01; as of 2026-09-01 it is 123 days overdue.
+  check: judge
+  why: Tests that the agent uses julianday or compute to derive elapsed days rather
+    than stating months vaguely.
