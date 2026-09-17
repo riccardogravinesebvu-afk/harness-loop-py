@@ -19,3 +19,7 @@ stop: budget after hyp/7 (loop 2026-09-17T085216+0000, 0.39 €)
 
 | 8 | hyp/8 | 098aa91 | system.md | Fix country code lookup (ISO 2-letter codes) and oldest-invoice ordering | rejected: holdout | +10.0pp | +1/0/+2/0 | -10.0pp | 0.32 | 0.58 | evals/results/2026-09-17T085753+0000.json |
 | 9 | hyp/9 | 391bf14 | system.md | Fix country code lookup (ISO 2-letter codes) and oldest-invoice ordering by due_at ASC | rejected: holdout | +10.0pp | +1/0/+2/0 | -20.0pp | 0.32 | 0.91 | evals/results/2026-09-17T085919+0000.json |
+| 10 | hyp/10 | 3fc4b89 | system.md | Fix country code lookup (ISO 2-letter codes) and oldest-invoice reasoning | rejected: holdout | +10.0pp | +1/0/+2/0 | -10.0pp | 0.34 | 1.24 | evals/results/2026-09-17T090045+0000.json |
+
+stop: budget after hyp/10 (loop 2026-09-17T085632+0000, 1.24 €)
+
