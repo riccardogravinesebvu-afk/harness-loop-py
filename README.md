@@ -8,7 +8,7 @@ An optimizer agent that improves another agent by iterating on evals: propose a 
 
 ## Status
 
-Day 6 of 6, complete: agent under test, 40-case dataset, checks and LLM judge, eval runner with Langfuse traces, optimizer loop with branch per hypothesis, regression gate, budget stop and changelog, feedback endpoint with weighted ingest, charts and variance. Five loops, 16 hypotheses, holdout confirmation on acceptance, every number below points at a committed file.
+Day 6 of 6, complete: agent under test, 40-case dataset, checks and LLM judge, eval runner with Langfuse traces, optimizer loop with branch per hypothesis, regression gate, budget stop and changelog, feedback endpoint with weighted ingest, charts and variance. Six loops, 19 hypotheses, holdout confirmation on acceptance, a second measurement (44 cases, judge v2) with zero run-to-run flips; every number below points at a committed file.
 
 Design: `docs/plans/2026-09-11-harness-loop-py-design.md`. Decisions: `docs/PRD.md` §11 (day 1) and §12 (days 2-6).
 
@@ -96,13 +96,44 @@ What the tables show, and what they do not:
 - **The loop is at its noise floor.** With one or two visible failures left, every candidate fix buys one case and costs two to four judged reasoning cases: adding detail to the prompt makes the judge find more figures it considers unsupported. The gate is right to refuse all three, and the budget rule stops the loop after three flat iterations. More iterations would not help; a larger dataset and a judge less sensitive to derived figures would. The optimizer also ignored its own rule 4 (it reworded the same idea three times after `no_gain`); rule 5 only covers holdout rejections.
 - **Re-measured baselines drift by one case**: 87% → 84% (feedback reweighting) → 97% here (`R03` passed this time). Same prompts, same seed.
 
+### Fixing the measurement, not the loop
+
+Loop 5 showed the loop at the noise floor of a 40-case dataset. Two changes to the measurement, both committed before any new run (`eb049ca`), then a re-measured baseline: [`2026-09-17T202029+0000.json`](evals/results/2026-09-17T202029+0000.json).
+
+- **Four cases added, none changed** (`F11`, `F12`, `R11`, `R12`): two visible refusals of the kind that was failing only in holdout (a prediction, an external fact), and the two optimizer proposals worth keeping (earliest overdue invoice, days overdue). 44 cases, 34 visible, 10 holdout. Category tolerance is recomputed from the dataset (one case of 10 for reasoning and refusal).
+- **Judge v2**: a figure obtained by adding, subtracting, dividing or counting figures in the tool outputs is supported evidence. Judge v1 penalised "5,250 outstanding" when the tools returned 3,750 and 1,500. `judge_version` is in every results file from here on.
+
+| final prompts, same seed | 40 cases, judge v1 (mean of 3) | 44 cases, judge v2 (mean of 3, plus the first run) |
+|---|---|---|
+| total | 87% | 91% (first run 93%) |
+| visible | 94% | 97% |
+| holdout | 67% | 70% (first run 80%) |
+| failing | `F04`, `F08`, `R03`, `R04`, `R09` (+`R06` once) | `F04`, `F08`, `F11`, `R09` (`F08` passed in the first run only) |
+
+Variance on the new measurement, three runs back to back ([`202749`](evals/results/2026-09-17T202749+0000.json), [`202856`](evals/results/2026-09-17T202856+0000.json), [`203003`](evals/results/2026-09-17T203003+0000.json)): identical, 0 of 44 cases change outcome. Judge v2 removed the flips on judged cases; what remains noisy is the `refused` flag on `F08`, which passed in the first run of the new baseline and in none of the three after it.
+
+This jump is not an agent improvement: the agent did not change. It is the rubric being fairer on derived figures (`R03`, `R04` now pass) and, in the first run only, `F08` passing. Numbers before and after this point are not comparable, which is why the results file carries the judge version.
+
+**Loop 6, on the new measurement** (loop file [`2026-09-17T202211+0000.json`](evals/results/loops/2026-09-17T202211+0000.json), rows 17-19 of the changelog): €1.24, budget stop, nothing accepted.
+
+| iteration | hypothesis | verdict | visible | holdout | cost € |
+|---|---|---|---|---|---|
+| 0 | baseline, re-measured | — | 97% | 70% | 0.29 |
+| 17 | refuse future-payment predictions (long rule) | rejected: no gain (fixed all 4 failures, broke `R02`, `R03`, `R07`) | 91% | 100% | 0.31 |
+| 18 | prediction/forecast rule, broader | rejected: no gain (broke 5 reasoning cases) | 89% | 70% | 0.32 |
+| 19 | one line: "will X pay?" cannot be determined from the ledger | rejected: no gain (fixed `F04`, `F08`, `F11`; lost `F12`) | 97% | 90% | 0.32 |
+
+- **The new visible refusal did its job.** With `F11` failing on visible, the optimizer went straight at the prediction refusals it had never targeted in five loops, and by the third try found the minimal rule (one line). Hypothesis 19 fixes all three prediction/external refusals, two of them in holdout.
+- **The gate rejected it, correctly by its own rule, and the rule is right.** Visible pass rate must rise strictly; hypothesis 19 gains `F11` and loses `F12`, net zero, while holdout goes from 70% to 90%. Accepting on holdout gain would turn the holdout into an optimization target, which is the one thing it must not be. The right move is a human one: the `F12` loss is noise (see next point), so a human can accept `hyp/19` by merging the branch and re-measuring, and say so in the changelog. Not done here: the loop's numbers stay the loop's.
+- **The noise is in the structured flag.** Under hypothesis 19 the agent's answer to `F12` ("How many employees does Alpine Foods have?") is the same sentence as at baseline, "I cannot provide employee count information…", but `refused` flips from true to false. The same thing happened to `F08` across the variance runs. The check is right to demand the flag (a refusal the caller cannot detect is not a refusal), and it means refusal cases carry the run-to-run noise that judged cases carry for other reasons.
+
 | Metric | Value | Results file |
 |---|---|---|
 | pass rate per iteration, total, per category, visible and holdout | tables above | three loop files above |
 | cost per iteration, marginal gain per euro, stop point | tables above; budget stop at iterations 4, 7, 10 | three loop files above |
-| hypotheses rejected by the gate | of 16: 2 accepted; 5 by holdout, 3 by no gain, 6 by anti-leak, 0 by visible category, 0 by holdout confirmation | `CHANGELOG.md` |
+| hypotheses rejected by the gate | of 19: 2 accepted; 5 by holdout, 6 by no gain, 6 by anti-leak, 0 by visible category, 0 by holdout confirmation | `CHANGELOG.md` |
 | iterations to recover a case flagged via feedback | 2 | loop 4 file, `feedback` block |
-| variance over 3 runs at temperature 0 | table below | three results files listed below |
+| variance over 3 runs at temperature 0 | judge v1: 1 case flips; judge v2: 0 of 44 | six results files, sections above and below |
 
 Every number in these tables points at a results file (model ids, seed, git sha, cost inside).
 

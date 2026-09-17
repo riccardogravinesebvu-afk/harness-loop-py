@@ -1,6 +1,6 @@
 # PRD — harness-loop-py
 
-Versione 0.3, 2026-09-16, aggiornata 2026-09-17. Stato: sei giorni consegnati; quattro loop, 13 ipotesi, un caso da feedback recuperato in 2 iterazioni, varianza su 3 run nel README. Decisioni dei giorni 2-6 in §12 (D4 emendata due volte con l'evidenza dei loop). Versioni precedenti: 0.2 del 2026-09-16, 0.1 del 2026-09-11.
+Versione 0.3, 2026-09-16, aggiornata 2026-09-17. Stato: sei giorni consegnati più conferma holdout (D16) e seconda misura (D17); sei loop, 19 ipotesi, un caso da feedback recuperato in 2 iterazioni, varianza su 3 run nel README. Decisioni dei giorni 2-6 in §12 (D4 emendata due volte con l'evidenza dei loop). Versioni precedenti: 0.2 del 2026-09-16, 0.1 del 2026-09-11.
 
 ## 1. Problema
 
@@ -150,6 +150,7 @@ Quindici domande sulla frontiera dei giorni 2-6, chiuse in un giro. §11 non è 
 | D13 | Varianza | 3 run completi del prompt finale: min/mean/max su totale e categorie, più il numero di casi che cambiano esito. Baseline solo se avanza budget | Il prompt finale è il numero che qualcuno prova a riprodurre |
 | D14 | Grafici | `scripts/plot.py`, matplotlib nel gruppo dev, `docs/img/*.svg` dal loop file | Cento righe di SVG a mano sono più manutenzione di una dipendenza noiosa |
 | D16 | Conferma holdout (2026-09-17, dopo la varianza) | Un'ipotesi che supera il gate viene rieseguita sui soli 10 casi holdout; accettata solo se anche il secondo run non scende; l'holdout di riferimento diventa il minimo dei due. Spec `docs/plans/2026-09-17-holdout-confirmation.md` | L'ipotesi 12 era passata per un'estrazione fortunata di `F08`: tre run successivi la smentiscono. Due run su due è la regola più semplice che l'avrebbe fermata |
+| D17 | Seconda misura (2026-09-17, dopo il loop 5) | Quattro casi aggiunti (`F11`, `F12` rifiuti visible su previsione e dato esterno; `R11`, `R12` dalle proposte dell'ottimizzatore), nessuno modificato. Giudice v2: cifre ricavate per somma, differenza, divisione o conteggio dai tool output sono supportate; `judge_version` nel results file | Il loop era al pavimento del rumore: un caso judge oscillava tra run e l'ottimizzatore non vedeva mai un rifiuto su previsione. Con v2: 0 flip su 44 casi in 3 run |
 | D15 | Origin | Testo attuale più URL del talk e dell'articolo, data di consultazione, e "the 18% → 83% figure is theirs, not reproduced here" | I loro numeri non sono i nostri |
 
 Nota sul giorno 2: la baseline porta lo sha `28e0ffb`, precedente al commit del codice. Da qui in poi l'ordine è: commit del codice, `just evals`, commit del results file, così lo sha nel file punta al codice che lo ha prodotto.
