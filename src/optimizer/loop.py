@@ -19,7 +19,7 @@ from git import Repo
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
-from evals.run import RUNS_LOG, load_cases
+from evals.run import RUNS_LOG, load_cases, summarize
 from evals.run import main_async as run_evals
 from src import observability as obs
 from src.llm import load_env, make_chat, model_for
@@ -84,6 +84,7 @@ class LoopState(TypedDict, total=False):
 def summary(res: dict, root: Path) -> dict:
     pr = res["pass_rate"]
     return {
+        "passed_ids": sorted(c["id"] for c in res["cases"] if c["passed"]),
         "visible": pr["per_split"].get("visible", 0.0),
         "holdout": pr["per_split"].get("holdout", 0.0),
         "per_category_visible": pr["per_category_visible"],
@@ -93,8 +94,10 @@ def summary(res: dict, root: Path) -> dict:
     }
 
 
-def failures(results_file: str) -> list[dict]:
-    """Visible failures of one results file, with tool args/outputs, from the local run log."""
+def failures(results_file: str, cases: list[dict]) -> list[dict]:
+    """Visible failures of one results file, with tool args/outputs, from the local run log.
+    Cases flagged by feedback carry their weight and the human note."""
+    fb = {c["id"]: c for c in cases if c.get("feedback")}
     out = []
     for line in RUNS_LOG.read_text().splitlines() if RUNS_LOG.exists() else []:
         r = json.loads(line)
@@ -112,6 +115,14 @@ def failures(results_file: str) -> list[dict]:
                     "error": r["error"],
                     "tool_calls": [{**c, "output": c["output"][:500]} for c in r["tool_calls"]],
                     "detail": detail.get("rationale") if isinstance(detail, dict) else detail,
+                    **(
+                        {
+                            "weight": fb[r["id"]]["weight"],
+                            "human_feedback": fb[r["id"]]["feedback"]["note"],
+                        }
+                        if r["id"] in fb
+                        else {}
+                    ),
                 }
             )
     return sorted(out, key=lambda r: r["id"])
@@ -239,8 +250,22 @@ def build_loop(cfg: dict, root: Path = ROOT):
             "stop": None,
         }
 
+    def reweigh(best: dict) -> dict:
+        """Feedback can change case weights between iterations: recompute the current best's
+        pass rates from its results file under today's weights, so the gate compares like
+        with like."""
+        res = json.loads((root / best["results_file"]).read_text())
+        weights = {c["id"]: c["weight"] for c in load_cases()}
+        rows = [{**r, "weight": weights.get(r["id"], r["weight"])} for r in res["cases"]]
+        if all(a["weight"] == b["weight"] for a, b in zip(rows, res["cases"], strict=True)):
+            return best  # no weight changed since that eval
+        res = {**res, "pass_rate": summarize(rows), "_path": str(root / best["results_file"])}
+        return summary(res, root)
+
     async def propose(state: LoopState) -> dict:
         n = state["n"]
+        cases[:] = load_cases()  # feedback.yaml may have changed since the last iteration
+        state["best"] = reweigh(state["best"])
         tid = obs.trace_id(f"{cfg['loop_id']}:{n}")
         meta = {"iteration": n, "hypothesis_id": f"hyp/{n}", "loop_id": cfg["loop_id"]}
         with obs.trace(f"iteration:{n}", tid, ["optimizer"], meta, span_name="optimizer") as (
@@ -250,7 +275,7 @@ def build_loop(cfg: dict, root: Path = ROOT):
             llm = make_chat("optimizer", max_tokens=8000).with_structured_output(
                 Hypothesis, method="function_calling", include_raw=True
             )
-            fails = failures(state["best"]["results_file"])
+            fails = failures(state["best"]["results_file"], cases)
             msgs = [
                 ("system", (Path(__file__).parent / "prompt.md").read_text()),
                 ("human", context(state["best"], cases, fs, fails)),
@@ -261,7 +286,8 @@ def build_loop(cfg: dict, root: Path = ROOT):
                 u = res["raw"].usage_metadata or {}
             except Exception as e:  # noqa: BLE001 — provider errors are rows, not crashes
                 span.update(output={"error": str(e)})
-                return {"hyp": None, "reason": f"provider_error: {str(e)[:80]}", "opt_eur": 0.0}
+                return {"hyp": None, "reason": f"provider_error: {str(e)[:80]}", "opt_eur": 0.0,
+                        "best": state["best"]}  # fmt: skip
             usd, _ = cost_usd(
                 model_for("optimizer"), u.get("input_tokens", 0), u.get("output_tokens", 0)
             )
@@ -275,7 +301,8 @@ def build_loop(cfg: dict, root: Path = ROOT):
             reason = "too_long"  # ponytail: same bucket, the file is structurally invalid
         elif leak := leaks_expected(hyp.content, cases, {f["id"] for f in fails}):
             reason = f"leaks_expected {leak}"
-        return {"hyp": hyp.model_dump(), "reason": reason, "opt_eur": usd_to_eur(usd)}
+        return {"hyp": hyp.model_dump(), "reason": reason, "opt_eur": usd_to_eur(usd),
+                "best": state["best"]}  # fmt: skip
 
     def apply(state: LoopState) -> dict:
         if not state["hyp"]:
@@ -302,6 +329,26 @@ def build_loop(cfg: dict, root: Path = ROOT):
         if accepted:
             repo.git.merge("--ff-only", f"hyp/{n}")
             best = after
+        for c in cases:
+            f = c.get("feedback")
+            if not f:
+                continue
+            rec = doc["feedback"].setdefault(
+                f["id"],
+                {
+                    "ref": c["id"],
+                    "note": f["note"],
+                    "flagged_before_iteration": n,
+                    "recovered_at_iteration": None,
+                },  # fmt: skip
+            )
+            if (
+                accepted
+                and rec["recovered_at_iteration"] is None
+                and c["id"] in after["passed_ids"]
+            ):
+                rec["recovered_at_iteration"] = n
+                rec["iterations_to_recover"] = n - rec["flagged_before_iteration"] + 1
         eval_eur = after["cost_eur"] if after else 0.0
         total = eval_eur + state["opt_eur"]
         cumulative = state["cumulative_eur"] + total

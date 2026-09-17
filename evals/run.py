@@ -9,6 +9,7 @@ keyed by the same deterministic trace_id, so the feedback endpoint can rebuild a
 import argparse
 import asyncio
 import json
+import os
 import subprocess
 import sys
 from collections import defaultdict
@@ -33,15 +34,30 @@ CASE_KEYS = ("id", "category", "check", "expected", "reference")
 ROW_KEYS = ("answer", "refused", "error", "passed", "detail", "score")
 
 
-def load_cases(path: Path = HERE / "dataset.yaml") -> list[dict]:
+def load_cases(
+    path: Path = HERE / "dataset.yaml", feedback: Path = HERE / "feedback.yaml"
+) -> list[dict]:
+    """Dataset plus feedback (PRD D11): an entry with `ref` reweights that case to FEEDBACK_WEIGHT
+    when the verdict is bad; without `ref` it is a new judge case, the note is the reference."""
     cases = yaml.safe_load(path.read_text())["cases"]
-    fb = HERE / "feedback.yaml"
-    if fb.exists():
-        cases += yaml.safe_load(fb.read_text()).get("cases", [])
     for c in cases:
         c.setdefault("weight", 1)
         c.setdefault("source", "seed")
         c.setdefault("split", "visible")
+    weight = float(os.environ.get("FEEDBACK_WEIGHT", "2"))
+    by_id = {c["id"]: c for c in cases}
+    entries = yaml.safe_load(feedback.read_text()).get("feedback", []) if feedback.exists() else []
+    for e in entries:
+        if e.get("verdict") != "bad":
+            continue
+        if e.get("ref"):
+            if e["ref"] in by_id:
+                by_id[e["ref"]].update(weight=weight, feedback={"id": e["id"], "note": e["note"]})
+            continue
+        cases.append({"id": e["id"], "category": e["category"], "input": e["input"],
+                      "expected": "judge", "check": "judge", "reference": e["note"],
+                      "weight": weight, "source": "feedback", "split": "visible",
+                      "feedback": {"id": e["id"], "note": e["note"]}})  # fmt: skip
     return cases
 
 

@@ -15,3 +15,6 @@ evals seed="42":
 
 loop max="12":
     uv run python -m src.optimizer.loop --max-iterations {{max}}
+
+feedback port="8765":
+    uv run uvicorn src.feedback.api:app --port {{port}}
