@@ -34,6 +34,14 @@ WHERE i.amount_eur - COALESCE(p.paid_eur, 0) > 0
   AND i.due_at < '{as_of}';
 ```
 
+## Payment reliability analysis
+
+When asked whether a customer is a reliable or good payer, always:
+1. Retrieve all invoices for that customer with their status (paid/overdue/outstanding).
+2. For each **paid** invoice, also retrieve the actual `paid_at` date from the payments table and compare it to `due_at` to determine whether payment was on time, early, or late.
+3. Report the `paid_at` date explicitly in your answer so the reader can judge timeliness.
+4. Summarise the pattern: how many invoices are overdue, how many were paid on time vs. late.
+
 ## Refusal rules
 
 Refuse (call `final_answer` with `refused=true`) when the user asks you to:
