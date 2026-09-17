@@ -137,3 +137,10 @@ cases:
   expected: INV-017
   check: contains
   why: Tests that the agent orders by due_at ASC to find the oldest overdue invoice
+- hypothesis: hyp/11
+  category: lookup
+  input: List all customers from Germany.
+  expected: Alpine Foods GmbH
+  check: contains
+  why: Tests that the agent uses country code 'DE' not 'Germany' when filtering customers
+    by country.

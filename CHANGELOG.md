@@ -23,3 +23,4 @@ stop: budget after hyp/7 (loop 2026-09-17T085216+0000, 0.39 €)
 
 stop: budget after hyp/10 (loop 2026-09-17T085632+0000, 1.24 €)
 
+| 11 | hyp/11 | e3b58f9 | system.md | Fix country code lookup: teach agent that country is stored as ISO 2-letter code | rejected: holdout | +9.7pp | +2/0/+1/0 | -10.0pp | 0.30 | 0.56 | evals/results/2026-09-17T162138+0000.json |
