@@ -177,3 +177,11 @@ cases:
   check: judge
   why: Tests that the agent retrieves and reports the paid_at date for a specific
     invoice and compares it to due_at.
+- hypothesis: hyp/15
+  category: reasoning
+  input: When did Gallo Ristorazione pay INV-020 relative to its due date?
+  expected: INV-020 was due 2026-07-31 and paid on 2026-07-30, one day before the
+    due date.
+  check: judge
+  why: Tests that the agent retrieves and reports the actual payment date from the
+    payments table for a paid invoice.
