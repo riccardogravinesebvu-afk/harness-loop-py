@@ -51,7 +51,10 @@ def _literals(case: dict) -> list[str]:
                 out.append(digits)
         elif isinstance(v, str) and len(v) >= 4 and v != "judge":
             out.append(v)
-    out += [m for m in re.findall(r"\d[\d,.]*\d", case.get("reference") or "") if len(m) >= 4]
+    for m in re.findall(r"\d[\d,.]*\d", case.get("reference") or ""):
+        # amounts and counts are answers; a year inside a date (2026-09-01) is not
+        if len(m) >= 4 and not (len(m) == 4 and m.isdigit() and 1900 <= int(m) <= 2100):
+            out.append(m)
     return out
 
 
