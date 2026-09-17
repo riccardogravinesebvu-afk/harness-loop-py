@@ -185,3 +185,11 @@ cases:
   check: judge
   why: Tests that the agent retrieves and reports the actual payment date from the
     payments table for a paid invoice.
+- hypothesis: hyp/16
+  category: reasoning
+  input: Was INV-020 paid on time?
+  expected: Yes. INV-020 was due 2026-07-31 and was paid on 2026-07-30, one day before
+    the due date.
+  check: judge
+  why: Tests that the agent retrieves and reports the actual payment date relative
+    to the due date.

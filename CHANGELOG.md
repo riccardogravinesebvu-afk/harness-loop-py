@@ -31,3 +31,7 @@ stop: max_iterations after hyp/13 (loop 2026-09-17T162024+0000, 0.90 €)
 
 | 14 | hyp/14 | dd4875a | system.md | Teach agent to include payment date when describing paid invoices in reliability analysis | rejected: no_gain | -6.5pp | 0/0/-2/0 | -10.0pp | 0.33 | 0.60 | evals/results/2026-09-17T165238+0000.json |
 | 15 | hyp/15 | 8285f7a | system.md | Teach agent to include payment date and proximity to due date when analyzing payment reliability | rejected: no_gain | -6.5pp | 0/0/-2/0 | +0.0pp | 0.34 | 0.94 | evals/results/2026-09-17T165404+0000.json |
+| 16 | hyp/16 | e836bf9 | system.md | Teach agent to fetch payment dates when assessing payment reliability | rejected: no_gain | -6.5pp | 0/0/-2/0 | +0.0pp | 0.33 | 1.27 | evals/results/2026-09-17T165534+0000.json |
+
+stop: budget after hyp/16 (loop 2026-09-17T165112+0000, 1.27 €)
+
