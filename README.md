@@ -8,7 +8,7 @@ An optimizer agent that improves another agent by iterating on evals: propose a 
 
 ## Status
 
-Day 6 of 6, complete: agent under test, 40-case dataset, checks and LLM judge, eval runner with Langfuse traces, optimizer loop with branch per hypothesis, regression gate, budget stop and changelog, feedback endpoint with weighted ingest, charts and variance. Six loops, 19 hypotheses, holdout confirmation on acceptance, a second measurement (44 cases, judge v2) with zero run-to-run flips; every number below points at a committed file.
+Day 6 of 6, complete: agent under test, 40-case dataset, checks and LLM judge, eval runner with Langfuse traces, optimizer loop with branch per hypothesis, regression gate, budget stop and changelog, feedback endpoint with weighted ingest, charts and variance. Six loops, 19 hypotheses, holdout confirmation on acceptance, a second measurement (44 cases, judge v2) with zero run-to-run flips, and one human acceptance on top of the loop; every number below points at a committed file.
 
 Design: `docs/plans/2026-09-11-harness-loop-py-design.md`. Decisions: `docs/PRD.md` §11 (day 1) and §12 (days 2-6).
 
@@ -80,7 +80,7 @@ What the tables show, and what they do not:
 | 13 | days-overdue arithmetic | rejected before eval: anti-leak on `2026` (a year in a date, false positive, fixed) | — | — | 0.04 |
 | stop | max iterations (3) | | | | 0.90 total |
 
-**Iterations to recover the flagged case: 2** (flagged before iteration 11, passing in accepted iteration 12; `feedback` block of the loop file). Two things happened that had not happened in loops 1-3: the optimizer changed mechanism after a holdout rejection (rule 5 in its prompt, added after loop 3) instead of rewording, and the same fix that had failed the holdout four times inside `system.md` passed it as a one-line tool description. Final prompt on `main`: [`system.md`](src/agent_under_test/prompts/system.md) from hypothesis 1, [`tools.yaml`](src/agent_under_test/prompts/tools.yaml) from hypothesis 12.
+**Iterations to recover the flagged case: 2** (flagged before iteration 11, passing in accepted iteration 12; `feedback` block of the loop file). Two things happened that had not happened in loops 1-3: the optimizer changed mechanism after a holdout rejection (rule 5 in its prompt, added after loop 3) instead of rewording, and the same fix that had failed the holdout four times inside `system.md` passed it as a one-line tool description. Final prompt on `main`: [`system.md`](src/agent_under_test/prompts/system.md) from hypothesis 1 plus one line from hypothesis 19 (human-accepted, see loop 6), [`tools.yaml`](src/agent_under_test/prompts/tools.yaml) from hypothesis 12.
 
 **Loop 5, with holdout confirmation** (loop file [`2026-09-17T165112+0000.json`](evals/results/loops/2026-09-17T165112+0000.json)): after the variance finding, the loop was changed so that a hypothesis passing the gate is re-run on the 10 holdout cases and kept only if the second run holds too; the lower of the two runs becomes the bar for the next comparison (`docs/plans/2026-09-17-holdout-confirmation.md`). Then one more loop from the final prompts.
 
@@ -124,14 +124,14 @@ This jump is not an agent improvement: the agent did not change. It is the rubri
 | 19 | one line: "will X pay?" cannot be determined from the ledger | rejected: no gain (fixed `F04`, `F08`, `F11`; lost `F12`) | 97% | 90% | 0.32 |
 
 - **The new visible refusal did its job.** With `F11` failing on visible, the optimizer went straight at the prediction refusals it had never targeted in five loops, and by the third try found the minimal rule (one line). Hypothesis 19 fixes all three prediction/external refusals, two of them in holdout.
-- **The gate rejected it, correctly by its own rule, and the rule is right.** Visible pass rate must rise strictly; hypothesis 19 gains `F11` and loses `F12`, net zero, while holdout goes from 70% to 90%. Accepting on holdout gain would turn the holdout into an optimization target, which is the one thing it must not be. The right move is a human one: the `F12` loss is noise (see next point), so a human can accept `hyp/19` by merging the branch and re-measuring, and say so in the changelog. Not done here: the loop's numbers stay the loop's.
+- **The gate rejected it, correctly by its own rule, and the rule is right.** Visible pass rate must rise strictly; hypothesis 19 gains `F11` and loses `F12`, net zero, while holdout goes from 70% to 90%. Accepting on holdout gain would turn the holdout into an optimization target, which is the one thing it must not be. The right move is a human one, and it was taken: `hyp/19` was merged by hand (`7a74118`), re-measured ([`2026-09-17T212958+0000.json`](evals/results/2026-09-17T212958+0000.json): visible 100%, holdout 90%, total 98%, only `F12` failing, again with the right words and the wrong flag) and written in the changelog as `accepted (human)`. The loop's own curve stops at hypothesis 19; the human decision is a separate row with its own results file, so the two are never confused.
 - **The noise is in the structured flag.** Under hypothesis 19 the agent's answer to `F12` ("How many employees does Alpine Foods have?") is the same sentence as at baseline, "I cannot provide employee count information…", but `refused` flips from true to false. The same thing happened to `F08` across the variance runs. The check is right to demand the flag (a refusal the caller cannot detect is not a refusal), and it means refusal cases carry the run-to-run noise that judged cases carry for other reasons.
 
 | Metric | Value | Results file |
 |---|---|---|
 | pass rate per iteration, total, per category, visible and holdout | tables above | three loop files above |
 | cost per iteration, marginal gain per euro, stop point | tables above; budget stop at iterations 4, 7, 10 | three loop files above |
-| hypotheses rejected by the gate | of 19: 2 accepted; 5 by holdout, 6 by no gain, 6 by anti-leak, 0 by visible category, 0 by holdout confirmation | `CHANGELOG.md` |
+| hypotheses rejected by the gate | of 19: 2 accepted by the loop, 1 by a human over the gate; 5 by holdout, 6 by no gain, 6 by anti-leak, 0 by visible category, 0 by holdout confirmation | `CHANGELOG.md` |
 | iterations to recover a case flagged via feedback | 2 | loop 4 file, `feedback` block |
 | variance over 3 runs at temperature 0 | judge v1: 1 case flips; judge v2: 0 of 44 | six results files, sections above and below |
 

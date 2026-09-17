@@ -41,3 +41,4 @@ stop: budget after hyp/16 (loop 2026-09-17T165112+0000, 1.27 €)
 
 stop: budget after hyp/19 (loop 2026-09-17T202211+0000, 1.24 €)
 
+| human | hyp/19 | 7a74118 | system.md | accepted by human after the gate's no_gain: F12 loss is refused-flag noise (same answer text), holdout 70→90 | accepted (human) | +2.9pp | 0/0/0/+1 | +20.0pp | 0.28 | — | evals/results/2026-09-17T212958+0000.json |
