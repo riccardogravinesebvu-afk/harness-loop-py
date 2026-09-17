@@ -18,7 +18,7 @@ def test_ingest_dataset_case_reweights_instead_of_duplicating(tmp_path, monkeypa
     cases = load_cases(feedback=fb_path)
     l09 = next(c for c in cases if c["id"] == "L09")
     assert l09["weight"] == 3 and l09["feedback"]["note"] == "missed Gallo"
-    assert len(cases) == 40  # no duplicate input
+    assert len(cases) == len(load_cases())  # no duplicate input
     # a good verdict is recorded but changes nothing
     api.ingest(
         {**RUN, "id": "A01"}, api.Feedback(trace_id="abc", verdict="good", note="ok"), fb_path

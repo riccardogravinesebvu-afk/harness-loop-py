@@ -78,7 +78,7 @@ async def test_accept_then_reject_then_stop(clone, monkeypatch):
     assert "rejected: holdout_confirm 30% vs 40%" in rows[2] and "(confirm 30%)" in rows[2]
     assert "(confirm 40%)" in rows[0]
     assert calls["splits"] == ["all", "all", "holdout", "all", "all", "holdout"]
-    assert "+13.3pp" in rows[0] and "| 0/0/0/+4 |" in rows[0]
+    assert "+13.3pp" in rows[0] and "| 0/0/0/+" in rows[0]  # refusal delta = 4/8 ÷ (1/n_refusal)
     doc = json.loads((clone / "evals/results/loops/T.json").read_text())
     assert [i["verdict"] for i in doc["iterations"]] == [
         "baseline", "accepted", "rejected: no_gain", "rejected: holdout_confirm 30% vs 40%",

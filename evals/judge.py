@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from src.llm import make_chat, model_for
 from src.pricing import cost_usd
 
+JUDGE_VERSION = 2  # v2 (2026-09-17): sums/differences of tool-output figures count as supported
 WEIGHTS = {"correctness": 0.5, "grounding": 0.3, "completeness": 0.2}
 PENALTY = 0.3
 PASS_AT = 0.7
@@ -18,7 +19,9 @@ Score each dimension from 0.0 to 1.0:
 - grounding: does every figure in the answer appear in, or follow arithmetically from,
   the TOOL OUTPUTS?
 - completeness: does the answer cover what the question asks, as the reference does?
-Set unsupported_number=true if ANY number in the answer has no evidence in the tool outputs.
+Set unsupported_number=true only if a number in the answer can NEITHER be found in the tool
+outputs NOR be obtained from them by adding, subtracting, dividing or counting (a total of two
+listed amounts, a difference between two dates, a count of listed rows are supported figures).
 If the agent refused or gave no answer, score 0 on all dimensions.
 
 QUESTION:

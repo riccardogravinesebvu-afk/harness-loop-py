@@ -19,7 +19,7 @@ from pathlib import Path
 import yaml
 
 from evals.checks import check
-from evals.judge import judge
+from evals.judge import JUDGE_VERSION, judge
 from src import observability as obs
 from src.agent_under_test import ledger
 from src.agent_under_test.graph import build_graph, run
@@ -180,6 +180,7 @@ async def main_async(args: argparse.Namespace) -> Path:
         "hypothesis_id": args.hypothesis,
         "langfuse": obs.enabled(),
         "models": {"agent": model_for("agent"), "judge": model_for("judge")},
+        "judge_version": JUDGE_VERSION,
         "split": args.split,
         "pass_rate": summarize(rows),
         "cost": {
