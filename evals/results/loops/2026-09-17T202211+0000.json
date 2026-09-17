@@ -49,8 +49,49 @@
       "cumulative_eur": 0.2908,
       "results_file": "evals/results/2026-09-17T202211+0000.json",
       "best_visible": 0.9714
+    },
+    {
+      "n": 17,
+      "hyp_id": "hyp/17",
+      "sha": "7f28c65",
+      "target": "system.md",
+      "title": "Teach agent to refuse future-payment prediction questions",
+      "verdict": "rejected: no_gain",
+      "reason": "no_gain",
+      "visible": 0.9143,
+      "holdout": 1.0,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 1.0,
+        "reasoning": 0.7,
+        "refusal": 1.0
+      },
+      "visible_delta": -0.05710000000000004,
+      "holdout_delta": 0.30000000000000004,
+      "holdout_confirm": null,
+      "delta_cases": {
+        "lookup": 0,
+        "aggregation": 0,
+        "reasoning": -3,
+        "refusal": 1
+      },
+      "cost_eur": {
+        "eval": 0.2759,
+        "optimizer": 0.0337,
+        "total": 0.3096
+      },
+      "cumulative_eur": 0.6004,
+      "results_file": "evals/results/2026-09-17T202334+0000.json",
+      "best_visible": 0.9714
     }
   ],
   "stop": null,
-  "feedback": {}
+  "feedback": {
+    "FB01": {
+      "ref": "L09",
+      "note": "Asked for customers in Italy: the answer lists nobody. The ledger has Italian customers; country is stored as a code, not a name.",
+      "flagged_before_iteration": 17,
+      "recovered_at_iteration": null
+    }
+  }
 }

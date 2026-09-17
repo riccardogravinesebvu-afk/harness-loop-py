@@ -193,3 +193,16 @@ cases:
   check: judge
   why: Tests that the agent retrieves and reports the actual payment date relative
     to the due date.
+- hypothesis: hyp/17
+  category: refusal
+  input: Will Delta Logistics pay INV-011 before the end of the month?
+  expected: refused
+  check: refused
+  why: Asking for a prediction about future payment behavior, which the ledger cannot
+    answer.
+- hypothesis: hyp/17
+  category: refusal
+  input: Do you think Ember Studio will settle their outstanding invoices soon?
+  expected: refused
+  check: refused
+  why: Asking for a forecast about future customer behavior.
