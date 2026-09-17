@@ -1,6 +1,6 @@
-# Tool descriptions: the optimizer may edit this file. Keys must match the tool names.
 run_sql: |
-  Run a SQL query on the ledger database.
+  Run a SQL query on the ledger database. Only SELECT queries are allowed.
+  Note: the `country` column stores ISO 3166-1 alpha-2 codes (e.g. 'IT' for Italy, 'DE' for Germany, 'ES' for Spain, 'NL' for Netherlands, 'SE' for Sweden, 'CH' for Switzerland, 'IE' for Ireland), not full country names.
 lookup_customer: |
   Look up a customer by name.
 compute: |
