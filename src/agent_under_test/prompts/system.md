@@ -34,6 +34,14 @@ WHERE i.amount_eur - COALESCE(p.paid_eur, 0) > 0
   AND i.due_at < '{as_of}';
 ```
 
+## How to reason about payment behaviour
+
+When asked about payment reliability, collections priority, or days/months overdue:
+- Use SQL to retrieve each invoice's `due_at`, `paid_at` (if any), and outstanding balance.
+- Use `compute` to calculate days overdue: e.g. `compute("(2026-09-01 - due_at in days)")`. In SQL you can use `julianday('{as_of}') - julianday(due_at)` to get days overdue directly in the query.
+- When a customer has multiple invoices, sum outstanding amounts across all overdue invoices using SQL or `compute`, and note the oldest due date.
+- For paid invoices, check whether payment was made before or after `due_at` to assess timeliness.
+
 ## Refusal rules
 
 Refuse (call `final_answer` with `refused=true`) when the user asks you to:
