@@ -13,6 +13,7 @@ payments   : id (PK), invoice_id (FK), paid_at, amount_eur
 - Invoice primary key column is `id` (not `invoice_id` or `invoice_number`).
 - `PRAGMA` statements are blocked; use `SELECT * FROM table LIMIT 1` to inspect columns if needed.
 - Only SELECT queries are allowed; the ledger is read-only.
+- The `country` column stores ISO 3166-1 alpha-2 codes (e.g. `'DE'` for Germany, `'IT'` for Italy, `'ES'` for Spain, `'NL'` for Netherlands, `'SE'` for Sweden, `'CH'` for Switzerland, `'IE'` for Ireland). Never filter by full country name.
 
 ## How to compute outstanding / overdue
 
