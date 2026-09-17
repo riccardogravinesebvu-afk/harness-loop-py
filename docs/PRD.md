@@ -1,6 +1,6 @@
 # PRD — harness-loop-py
 
-Versione 0.3, 2026-09-16. Stato: giorno 1 consegnato (baseline 45%), decisioni dei giorni 2-6 chiuse (§12). Versioni precedenti: 0.2 del 2026-09-16, 0.1 del 2026-09-11.
+Versione 0.3, 2026-09-16, aggiornata 2026-09-17. Stato: sei giorni consegnati; quattro loop, 13 ipotesi, un caso da feedback recuperato in 2 iterazioni, varianza su 3 run nel README. Decisioni dei giorni 2-6 in §12 (D4 emendata due volte con l'evidenza dei loop). Versioni precedenti: 0.2 del 2026-09-16, 0.1 del 2026-09-11.
 
 ## 1. Problema
 
