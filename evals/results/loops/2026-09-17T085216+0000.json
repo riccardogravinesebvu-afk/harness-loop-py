@@ -49,6 +49,29 @@
       "cumulative_eur": 0.2594,
       "results_file": "evals/results/2026-09-17T085218+0000.json",
       "best_visible": 0.8667
+    },
+    {
+      "n": 5,
+      "hyp_id": "hyp/5",
+      "sha": "fc222c4",
+      "target": "system.md",
+      "title": "Fix country code lookup by teaching agent that country is stored as ISO 2-letter code",
+      "verdict": "rejected: leaks_expected L02:Switzerland",
+      "reason": "leaks_expected L02:Switzerland",
+      "visible": null,
+      "holdout": null,
+      "per_category_visible": null,
+      "visible_delta": null,
+      "holdout_delta": null,
+      "delta_cases": {},
+      "cost_eur": {
+        "eval": 0.0,
+        "optimizer": 0.0446,
+        "total": 0.0446
+      },
+      "cumulative_eur": 0.304,
+      "results_file": null,
+      "best_visible": 0.8667
     }
   ],
   "stop": null,
