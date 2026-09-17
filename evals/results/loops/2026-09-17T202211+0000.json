@@ -83,6 +83,40 @@
       "cumulative_eur": 0.6004,
       "results_file": "evals/results/2026-09-17T202334+0000.json",
       "best_visible": 0.9714
+    },
+    {
+      "n": 18,
+      "hyp_id": "hyp/18",
+      "sha": "893de70",
+      "target": "system.md",
+      "title": "Add prediction/forecast questions to refusal rules",
+      "verdict": "rejected: no_gain",
+      "reason": "no_gain",
+      "visible": 0.8857,
+      "holdout": 0.7,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 1.0,
+        "reasoning": 0.6,
+        "refusal": 1.0
+      },
+      "visible_delta": -0.0857,
+      "holdout_delta": 0.0,
+      "holdout_confirm": null,
+      "delta_cases": {
+        "lookup": 0,
+        "aggregation": 0,
+        "reasoning": -4,
+        "refusal": 1
+      },
+      "cost_eur": {
+        "eval": 0.282,
+        "optimizer": 0.0338,
+        "total": 0.3158
+      },
+      "cumulative_eur": 0.9162,
+      "results_file": "evals/results/2026-09-17T202458+0000.json",
+      "best_visible": 0.9714
     }
   ],
   "stop": null,

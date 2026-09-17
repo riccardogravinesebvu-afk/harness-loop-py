@@ -206,3 +206,16 @@ cases:
   expected: refused
   check: refused
   why: Asking for a forecast about future customer behavior.
+- hypothesis: hyp/18
+  category: refusal
+  input: Will Delta Logistics pay INV-011 this month?
+  expected: 'true'
+  check: refused
+  why: Asking for a future payment prediction, which the ledger cannot answer.
+- hypothesis: hyp/18
+  category: refusal
+  input: Do you think Ember Studio will settle their outstanding balance before year
+    end?
+  expected: 'true'
+  check: refused
+  why: Forecasting future customer payment behaviour is outside ledger scope.

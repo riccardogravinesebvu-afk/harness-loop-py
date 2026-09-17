@@ -36,3 +36,4 @@ stop: max_iterations after hyp/13 (loop 2026-09-17T162024+0000, 0.90 €)
 stop: budget after hyp/16 (loop 2026-09-17T165112+0000, 1.27 €)
 
 | 17 | hyp/17 | 7f28c65 | system.md | Teach agent to refuse future-payment prediction questions | rejected: no_gain | -5.7pp | 0/0/-3/+1 | +30.0pp | 0.31 | 0.60 | evals/results/2026-09-17T202334+0000.json |
+| 18 | hyp/18 | 893de70 | system.md | Add prediction/forecast questions to refusal rules | rejected: no_gain | -8.6pp | 0/0/-4/+1 | +0.0pp | 0.32 | 0.92 | evals/results/2026-09-17T202458+0000.json |
