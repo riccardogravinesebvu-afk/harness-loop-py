@@ -49,6 +49,39 @@
       "cumulative_eur": 0.2631,
       "results_file": "evals/results/2026-09-17T085633+0000.json",
       "best_visible": 0.8667
+    },
+    {
+      "n": 8,
+      "hyp_id": "hyp/8",
+      "sha": "098aa91",
+      "target": "system.md",
+      "title": "Fix country code lookup (ISO 2-letter codes) and oldest-invoice ordering",
+      "verdict": "rejected: holdout",
+      "reason": "holdout",
+      "visible": 0.9667,
+      "holdout": 0.7,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 1.0,
+        "reasoning": 0.875,
+        "refusal": 1.0
+      },
+      "visible_delta": 0.09999999999999998,
+      "holdout_delta": -0.10000000000000009,
+      "delta_cases": {
+        "lookup": 1,
+        "aggregation": 0,
+        "reasoning": 2,
+        "refusal": 0
+      },
+      "cost_eur": {
+        "eval": 0.2744,
+        "optimizer": 0.0454,
+        "total": 0.3198
+      },
+      "cumulative_eur": 0.5829,
+      "results_file": "evals/results/2026-09-17T085753+0000.json",
+      "best_visible": 0.8667
     }
   ],
   "stop": null,

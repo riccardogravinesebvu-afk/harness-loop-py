@@ -94,3 +94,21 @@ cases:
   check: contains
   why: Tests that the agent orders by due_at ASC to find the oldest overdue invoice
     rather than reading from an amount-ordered result.
+- hypothesis: hyp/8
+  category: lookup
+  input: List all customers from Italy.
+  expected: Bruno Serramenti Srl and Gallo Ristorazione Srl
+  check: contains
+  why: Tests that the agent uses ISO country code IT instead of full name Italy
+- hypothesis: hyp/8
+  category: lookup
+  input: Which customers are based in Switzerland?
+  expected: Fortuna Trading SA
+  check: contains
+  why: Tests ISO code CH lookup
+- hypothesis: hyp/8
+  category: reasoning
+  input: What is the oldest overdue invoice as of today?
+  expected: INV-017
+  check: contains
+  why: Tests that agent orders by due_at ASC to find oldest, not by outstanding DESC

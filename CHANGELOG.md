@@ -17,3 +17,4 @@ stop: budget after hyp/4 (loop 2026-09-16T224557+0000, 1.11 €)
 
 stop: budget after hyp/7 (loop 2026-09-17T085216+0000, 0.39 €)
 
+| 8 | hyp/8 | 098aa91 | system.md | Fix country code lookup (ISO 2-letter codes) and oldest-invoice ordering | rejected: holdout | +10.0pp | +1/0/+2/0 | -10.0pp | 0.32 | 0.58 | evals/results/2026-09-17T085753+0000.json |
