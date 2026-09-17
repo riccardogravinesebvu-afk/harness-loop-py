@@ -1,0 +1,56 @@
+{
+  "loop_id": "2026-09-17T165112+0000",
+  "started": "2026-09-17T165112+0000",
+  "git_sha_start": "ddbe113",
+  "params": {
+    "max_iterations": 5,
+    "max_total_eur": 2.0,
+    "min_gain_per_eur": 0.03,
+    "window": 3,
+    "feedback_weight": 2.0,
+    "tolerance": {
+      "lookup": 0.14285714285714285,
+      "aggregation": 0.14285714285714285,
+      "reasoning": 0.125,
+      "refusal": 0.125
+    },
+    "seed": 42
+  },
+  "models": {
+    "agent": "claude-haiku-4-5-20251001",
+    "judge": "claude-sonnet-4-6",
+    "optimizer": "claude-sonnet-4-6"
+  },
+  "iterations": [
+    {
+      "n": 0,
+      "hyp_id": null,
+      "sha": "ddbe113",
+      "target": null,
+      "title": "baseline",
+      "verdict": "baseline",
+      "reason": null,
+      "visible": 0.9677,
+      "holdout": 0.7,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 1.0,
+        "reasoning": 0.875,
+        "refusal": 1.0
+      },
+      "visible_delta": null,
+      "holdout_delta": null,
+      "delta_cases": {},
+      "cost_eur": {
+        "eval": 0.2644,
+        "optimizer": 0.0,
+        "total": 0.2644
+      },
+      "cumulative_eur": 0.2644,
+      "results_file": "evals/results/2026-09-17T165113+0000.json",
+      "best_visible": 0.9677
+    }
+  ],
+  "stop": null,
+  "feedback": {}
+}
