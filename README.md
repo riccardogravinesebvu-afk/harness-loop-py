@@ -8,7 +8,7 @@ An optimizer agent that improves another agent by iterating on evals: propose a 
 
 ## Status
 
-Day 6 of 6, complete: agent under test, 40-case dataset, checks and LLM judge, eval runner with Langfuse traces, optimizer loop with branch per hypothesis, regression gate, budget stop and changelog, feedback endpoint with weighted ingest, charts and variance. Four loops, 13 hypotheses, every number below points at a committed file.
+Day 6 of 6, complete: agent under test, 40-case dataset, checks and LLM judge, eval runner with Langfuse traces, optimizer loop with branch per hypothesis, regression gate, budget stop and changelog, feedback endpoint with weighted ingest, charts and variance. Five loops, 16 hypotheses, holdout confirmation on acceptance, every number below points at a committed file.
 
 Design: `docs/plans/2026-09-11-harness-loop-py-design.md`. Decisions: `docs/PRD.md` §11 (day 1) and §12 (days 2-6).
 
@@ -82,11 +82,25 @@ What the tables show, and what they do not:
 
 **Iterations to recover the flagged case: 2** (flagged before iteration 11, passing in accepted iteration 12; `feedback` block of the loop file). Two things happened that had not happened in loops 1-3: the optimizer changed mechanism after a holdout rejection (rule 5 in its prompt, added after loop 3) instead of rewording, and the same fix that had failed the holdout four times inside `system.md` passed it as a one-line tool description. Final prompt on `main`: [`system.md`](src/agent_under_test/prompts/system.md) from hypothesis 1, [`tools.yaml`](src/agent_under_test/prompts/tools.yaml) from hypothesis 12.
 
+**Loop 5, with holdout confirmation** (loop file [`2026-09-17T165112+0000.json`](evals/results/loops/2026-09-17T165112+0000.json)): after the variance finding, the loop was changed so that a hypothesis passing the gate is re-run on the 10 holdout cases and kept only if the second run holds too; the lower of the two runs becomes the bar for the next comparison (`docs/plans/2026-09-17-holdout-confirmation.md`). Then one more loop from the final prompts.
+
+| iteration | hypothesis | verdict | visible (weighted) | holdout | cost € |
+|---|---|---|---|---|---|
+| 0 | baseline, re-measured | — | 97% | 70% | 0.37 |
+| 14 | payment dates in reliability analysis | rejected: no gain (fixed `R04`, broke `R02`, `R03`, `R05`, `R06`) | 90% | 60% | 0.33 |
+| 15 | same, reworded | rejected: no gain (fixed `R09`, broke `R02`, `R05`, `R06`) | 90% | 70% | 0.34 |
+| 16 | same, reworded | rejected: no gain (fixed `F08`, broke `R02`, `R05`, `R06`) | 90% | 70% | 0.33 |
+| stop | budget | | | | 1.27 total |
+
+- **The confirmation never ran on a real hypothesis**: nothing passed the gate in loop 5. It is exercised by the mechanics test (`tests/test_loop_mechanics.py`: an accepted hypothesis with both runs holding, and one rejected as `holdout_confirm` when the second run drops). The number it was built to report, "acceptances overturned by the confirmation", is 0 of 0 so far.
+- **The loop is at its noise floor.** With one or two visible failures left, every candidate fix buys one case and costs two to four judged reasoning cases: adding detail to the prompt makes the judge find more figures it considers unsupported. The gate is right to refuse all three, and the budget rule stops the loop after three flat iterations. More iterations would not help; a larger dataset and a judge less sensitive to derived figures would. The optimizer also ignored its own rule 4 (it reworded the same idea three times after `no_gain`); rule 5 only covers holdout rejections.
+- **Re-measured baselines drift by one case**: 87% → 84% (feedback reweighting) → 97% here (`R03` passed this time). Same prompts, same seed.
+
 | Metric | Value | Results file |
 |---|---|---|
 | pass rate per iteration, total, per category, visible and holdout | tables above | three loop files above |
 | cost per iteration, marginal gain per euro, stop point | tables above; budget stop at iterations 4, 7, 10 | three loop files above |
-| hypotheses rejected by the gate | 0 by visible category, 5 by holdout, 6 by anti-leak (of 13) | `CHANGELOG.md` |
+| hypotheses rejected by the gate | of 16: 2 accepted; 5 by holdout, 3 by no gain, 6 by anti-leak, 0 by visible category, 0 by holdout confirmation | `CHANGELOG.md` |
 | iterations to recover a case flagged via feedback | 2 | loop 4 file, `feedback` block |
 | variance over 3 runs at temperature 0 | table below | three results files listed below |
 
@@ -111,7 +125,7 @@ The trace id is derived locally from the run timestamp and the case id, so it ex
 1. **propose**: `claude-sonnet-4-6` reads the current prompt files, the agent's code (read-only), the visible pass rate per category, the failing visible cases with the agent's answer and tool calls, and the changelog of previous hypotheses. It never sees holdout cases. It returns one hypothesis: one target file (`system.md` or `tools.yaml`), its complete new content, a rationale, and optional eval cases for a human to review (`evals/proposed.yaml`). The prompt is generic (`src/optimizer/prompt.md`): it describes the method, not the ledger.
 2. **apply**: branch `hyp/<n>` from `main`, write the file, commit. Two checks run before spending an eval: length caps (6000 / 3000 chars) and the anti-leak rule (no expected value of a visible case spelled out in the prompt).
 3. **evaluate**: the full 40-case suite, with `iteration` and `hypothesis_id` in the results file and on every Langfuse trace.
-4. **decide**: the gate keeps the hypothesis only if the visible pass rate rises, no category drops by more than one visible case (tolerance `1/n` computed from the dataset), and the holdout pass rate does not fall. Accepted: `main` fast-forwards. Rejected: `main` gets only the evidence (results file, changelog row, loop file); the branch stays. Stop when the marginal gain per euro over the last 3 iterations is below `BUDGET_MIN_GAIN_PER_EUR`, or at `MAX_ITERATIONS` / `MAX_TOTAL_EUR`. Every iteration's cost includes the optimizer's own tokens.
+4. **decide**: the gate keeps the hypothesis only if the visible pass rate rises, no category drops by more than one visible case (tolerance `1/n` computed from the dataset), and the holdout pass rate does not fall, on two separate holdout runs (the second, holdout-only, costs about $0.10; the lower of the two becomes the next bar). Accepted: `main` fast-forwards. Rejected: `main` gets only the evidence (results file, changelog row, loop file); the branch stays. Stop when the marginal gain per euro over the last 3 iterations is below `BUDGET_MIN_GAIN_PER_EUR`, or at `MAX_ITERATIONS` / `MAX_TOTAL_EUR`. Every iteration's cost includes the optimizer's own tokens.
 
 The loop refuses to start on a dirty working tree, so every number it produces is committed with the code that produced it.
 
@@ -129,7 +143,7 @@ Same prompts (`main` after hypothesis 12), same seed, temperature 0, run back to
 | refusal | 80% | 80% | 80% |
 
 - **Visible is stable**: the same 29 of 30 weighted cases pass in all three runs. One case flips across the three runs, `R06`, a judged holdout reasoning case.
-- **The acceptance of hypothesis 12 was a lucky draw.** In the run that got it accepted, holdout was 80% with `F08` ("What was Helios Energy's revenue last year?") passing. In all three re-runs of the same prompts `F08` fails: the agent declines in words without setting `refused=true`, the same regression the holdout gate had rejected four times when the ISO-code hint sat in `system.md`. Moving it to the tool description did not fix that; one run happened to pass. Honest holdout for the final prompts is about 67%, not 80%. The gate has one-case resolution and one-run evidence, and the noise is one case: a real hypothesis slipped through. The fix is known and not implemented here: re-run the holdout on acceptance, or require the holdout gain to exceed the measured noise. Both cost evals; the budget rule would have to account for them.
+- **The acceptance of hypothesis 12 was a lucky draw.** In the run that got it accepted, holdout was 80% with `F08` ("What was Helios Energy's revenue last year?") passing. In all three re-runs of the same prompts `F08` fails: the agent declines in words without setting `refused=true`, the same regression the holdout gate had rejected four times when the ISO-code hint sat in `system.md`. Moving it to the tool description did not fix that; one run happened to pass. Honest holdout for the final prompts is about 67%, not 80%. The gate had one-case resolution and one-run evidence, and the noise is one case: a real hypothesis slipped through. Fix implemented right after this finding: the holdout is re-run on acceptance and the lower run becomes the bar (loop 5 above); its cost enters the budget.
 - **Four cases fail in every run**: `F04` (a refusal), `R03`, `R04`, `R09` (judged reasoning, mostly figures the judge finds unsupported by tool outputs). They are the remaining work for the optimizer, and for the dataset author: whether `R03`/`R04`'s references are fair is a human's call, not the loop's.
 
 ## Human feedback in the loop
