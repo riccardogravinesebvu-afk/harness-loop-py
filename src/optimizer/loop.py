@@ -152,6 +152,8 @@ def changelog_row(it: dict) -> str:
     cats = "/".join(f"{d.get(c, 0):+d}" if d.get(c) else "0" for c in CATS) if d else "—"
     vis = f"{it['visible_delta'] * 100:+.1f}pp" if it["visible_delta"] is not None else "—"
     hold = f"{it['holdout_delta'] * 100:+.1f}pp" if it["holdout_delta"] is not None else "—"
+    if it.get("holdout_confirm"):
+        hold += f" (confirm {it['holdout_confirm']['holdout'] * 100:.0f}%)"
     return (
         f"| {it['n']} | {it['hyp_id']} | {it['sha']} | {it['target']} | {it['title']} | "
         f"{it['verdict']} | {vis} | {cats} | {hold} | {it['cost_eur']['total']:.2f} | "
@@ -189,10 +191,10 @@ def build_loop(cfg: dict, root: Path = ROOT):
         repo.index.add([str(p) for p in paths])
         return repo.index.commit(msg).hexsha[:7]
 
-    async def evaluate_now(n: int | None, hyp_id: str | None) -> dict:
+    async def evaluate_now(n: int | None, hyp_id: str | None, split: str = "all") -> dict:
         ns = argparse.Namespace(
             seed=cfg["seed"],
-            split="all",
+            split=split,
             limit=0,
             ids="",
             concurrency=4,
@@ -318,9 +320,24 @@ def build_loop(cfg: dict, root: Path = ROOT):
         return "decide" if state["reason"] else "evaluate"
 
     async def evaluate(state: LoopState) -> dict:
-        res = await evaluate_now(state["n"], f"hyp/{state['n']}")
+        n, before = state["n"], state["best"]
+        res = await evaluate_now(n, f"hyp/{n}")
         after = summary(res, root)
-        return {"results": after, "reason": gate(state["best"], after, tol)}
+        reason = gate(before, after, tol)
+        if reason is None:  # passed on one run: confirm the holdout on a second run (D16)
+            conf = await evaluate_now(n, f"hyp/{n}", "holdout")
+            hold2 = conf["pass_rate"]["per_split"]["holdout"]
+            after["confirm"] = {
+                "holdout": hold2,
+                "results_file": str(Path(conf["_path"]).resolve().relative_to(root.resolve())),
+                "cost_eur": conf["cost"]["total_eur"],
+            }
+            after["cost_eur"] = round(after["cost_eur"] + conf["cost"]["total_eur"], 4)
+            if hold2 + 1e-9 < before["holdout"]:
+                reason = f"holdout_confirm {hold2:.0%} vs {before['holdout']:.0%}"
+            else:
+                after["holdout"] = min(after["holdout"], hold2)  # the lower bound becomes the bar
+        return {"results": after, "reason": reason}
 
     def decide(state: LoopState) -> dict:
         n, hyp, best, after = state["n"], state["hyp"], state["best"], state.get("results")
@@ -365,6 +382,7 @@ def build_loop(cfg: dict, root: Path = ROOT):
             "per_category_visible": after["per_category_visible"] if after else None,
             "visible_delta": after["visible"] - state["best"]["visible"] if after else None,
             "holdout_delta": after["holdout"] - state["best"]["holdout"] if after else None,
+            "holdout_confirm": after.get("confirm") if after else None,
             "delta_cases": delta_cases(
                 state["best"]["per_category_visible"], after["per_category_visible"], tol
             )
@@ -389,6 +407,8 @@ def build_loop(cfg: dict, root: Path = ROOT):
         with changelog.open("a") as f:
             f.write(changelog_row(it))
         to_add = [changelog, loop_file] + ([root / after["results_file"]] if after else [])
+        if after and after.get("confirm"):
+            to_add.append(root / after["confirm"]["results_file"])
         if hyp and hyp["proposed_cases"]:
             pf = fs["proposed"]
             prev = yaml.safe_load(pf.read_text()) if pf.exists() else {"cases": []}
