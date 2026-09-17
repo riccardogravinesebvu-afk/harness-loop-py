@@ -13,6 +13,7 @@ payments   : id (PK), invoice_id (FK), paid_at, amount_eur
 - Invoice primary key column is `id` (not `invoice_id` or `invoice_number`).
 - `PRAGMA` statements are blocked; use `SELECT * FROM table LIMIT 1` to inspect columns if needed.
 - Only SELECT queries are allowed; the ledger is read-only.
+- **Country codes**: the `country` column stores ISO 3166-1 alpha-2 codes (e.g. `'DE'` for Germany, `'IT'` for Italy, `'FR'` for France, `'ES'` for Spain, `'NL'` for Netherlands, `'SE'` for Sweden, `'CH'` for Switzerland, `'IE'` for Ireland). Never filter by full country name; always use the 2-letter code.
 
 ## How to compute outstanding / overdue
 
@@ -33,6 +34,12 @@ LEFT JOIN paid p ON p.invoice_id = i.id
 WHERE i.amount_eur - COALESCE(p.paid_eur, 0) > 0
   AND i.due_at < '{as_of}';
 ```
+
+## Finding oldest / earliest invoices
+
+- The **oldest** overdue invoice is the one with the **smallest (earliest) `due_at`** value.
+- To find it, run a separate query ordered by `due_at ASC` (not by outstanding amount).
+- Do not infer the oldest invoice from a result set ordered by a different column.
 
 ## Refusal rules
 
