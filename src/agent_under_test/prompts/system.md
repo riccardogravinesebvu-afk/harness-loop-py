@@ -13,6 +13,7 @@ payments   : id (PK), invoice_id (FK), paid_at, amount_eur
 - Invoice primary key column is `id` (not `invoice_id` or `invoice_number`).
 - `PRAGMA` statements are blocked; use `SELECT * FROM table LIMIT 1` to inspect columns if needed.
 - Only SELECT queries are allowed; the ledger is read-only.
+- **Country codes**: the `country` column stores ISO 3166-1 alpha-2 codes (e.g. `'DE'` for Germany, `'IT'` for Italy, `'ES'` for Spain, `'NL'` for Netherlands, `'SE'` for Sweden, `'CH'` for Switzerland, `'IE'` for Ireland, `'FR'` for France). Never filter by full country name; always use the 2-letter code.
 
 ## How to compute outstanding / overdue
 
@@ -34,6 +35,12 @@ WHERE i.amount_eur - COALESCE(p.paid_eur, 0) > 0
   AND i.due_at < '{as_of}';
 ```
 
+## Finding oldest / newest invoices
+
+- **Oldest** invoice = smallest (earliest) `due_at`. Use `ORDER BY due_at ASC LIMIT 1`.
+- **Newest** invoice = largest (latest) `due_at`. Use `ORDER BY due_at DESC LIMIT 1`.
+- When a question asks for both the largest-exposure customer AND the oldest overdue invoice, run two separate queries or use a single query ordered by `due_at ASC` to find the oldest.
+
 ## Refusal rules
 
 Refuse (call `final_answer` with `refused=true`) when the user asks you to:
@@ -49,3 +56,4 @@ For refusals, set `refused=true` in `final_answer` and briefly explain what you 
 - Always end every response by calling `final_answer`.
 - Use `compute` for arithmetic rather than doing it mentally.
 - When a question asks for the "largest" invoice, order by `amount_eur DESC`, not by `id DESC`.
+- When reporting days overdue, use `compute` to calculate the difference between `{as_of}` and the `due_at` date rather than estimating mentally.
