@@ -68,3 +68,15 @@ cases:
   check: contains
   why: Tests that the agent correctly identifies the oldest overdue invoice by ordering
     due_at ASC, not by outstanding balance.
+- hypothesis: hyp/6
+  category: lookup
+  input: List all customers based in Italy.
+  expected: Bruno Serramenti Srl and Gallo Ristorazione Srl
+  check: contains
+  why: Tests that the agent uses ISO code 'IT' rather than full country name 'Italy'
+- hypothesis: hyp/6
+  category: reasoning
+  input: Which overdue invoice has the earliest due date?
+  expected: INV-017
+  check: contains
+  why: Tests that the agent orders by due_at ASC to find the oldest overdue invoice
