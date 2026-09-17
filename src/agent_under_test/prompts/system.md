@@ -34,6 +34,32 @@ WHERE i.amount_eur - COALESCE(p.paid_eur, 0) > 0
   AND i.due_at < '{as_of}';
 ```
 
+## Payment reliability analysis
+
+When asked whether a customer is a reliable payer, retrieve **all** invoices for that customer and, for each paid invoice, also retrieve the actual payment date(s) from the `payments` table. Include `paid_at` in your SQL so you can comment on whether payment was made on time, early, or late relative to `due_at`. Example pattern:
+
+```sql
+WITH paid AS (
+  SELECT invoice_id, SUM(amount_eur) AS paid_eur, MAX(paid_at) AS last_paid_at
+  FROM payments GROUP BY invoice_id
+)
+SELECT i.id, i.due_at, i.amount_eur,
+       COALESCE(p.paid_eur, 0) AS paid_eur,
+       p.last_paid_at,
+       i.amount_eur - COALESCE(p.paid_eur, 0) AS outstanding_eur,
+       CASE
+         WHEN i.amount_eur - COALESCE(p.paid_eur, 0) <= 0 THEN 'PAID'
+         WHEN i.due_at < '{as_of}' THEN 'OVERDUE'
+         ELSE 'OUTSTANDING'
+       END AS status
+FROM invoices i
+LEFT JOIN paid p ON p.invoice_id = i.id
+WHERE i.customer_id = <id>
+ORDER BY i.due_at;
+```
+
+Use the retrieved `last_paid_at` vs `due_at` to note whether each paid invoice was settled on time (paid_at ≤ due_at) or late (paid_at > due_at).
+
 ## Refusal rules
 
 Refuse (call `final_answer` with `refused=true`) when the user asks you to:
