@@ -117,13 +117,12 @@ def failures(results_file: str) -> list[dict]:
     return sorted(out, key=lambda r: r["id"])
 
 
-def context(best: dict, cases: list[dict], fs: dict) -> str:
+def context(best: dict, cases: list[dict], fs: dict, fails: list[dict]) -> str:
     n = {c: sum(1 for x in cases if x["category"] == c and x["split"] == "visible") for c in CATS}
     rates = "\n".join(
         f"- {c}: {best['per_category_visible'].get(c, 0.0):.0%} of {n[c]} visible cases"
         for c in CATS
     )
-    fails = failures(best["results_file"])
     log = fs["changelog"].read_text().splitlines()[4:] if fs["changelog"].exists() else []
     parts = [
         "## Current prompt files",
@@ -251,9 +250,10 @@ def build_loop(cfg: dict, root: Path = ROOT):
             llm = make_chat("optimizer", max_tokens=8000).with_structured_output(
                 Hypothesis, method="function_calling", include_raw=True
             )
+            fails = failures(state["best"]["results_file"])
             msgs = [
                 ("system", (Path(__file__).parent / "prompt.md").read_text()),
-                ("human", context(state["best"], cases, fs)),
+                ("human", context(state["best"], cases, fs, fails)),
             ]
             try:
                 res = await llm.ainvoke(msgs, config={"callbacks": callbacks})
@@ -273,7 +273,7 @@ def build_loop(cfg: dict, root: Path = ROOT):
             reason = "too_long"
         elif hyp.target == "tools.yaml" and _tool_keys(hyp.content) != TOOL_KEYS:
             reason = "too_long"  # ponytail: same bucket, the file is structurally invalid
-        elif leak := leaks_expected(hyp.content, cases):
+        elif leak := leaks_expected(hyp.content, cases, {f["id"] for f in fails}):
             reason = f"leaks_expected {leak}"
         return {"hyp": hyp.model_dump(), "reason": reason, "opt_eur": usd_to_eur(usd)}
 

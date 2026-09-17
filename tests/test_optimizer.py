@@ -54,6 +54,9 @@ def test_leak_filter_catches_visible_literals_only():
     assert leaks_expected("outstanding is 24890.00", CASES) == "R01:24,890.00"
     assert leaks_expected("due 2026-09-09", CASES) is None  # holdout: not visible to the optimizer
     assert leaks_expected("There are 8 customers", CASES) is None  # short literals are noise
+    # only failing cases count: a passing case's accepted word may be general knowledge
+    assert leaks_expected("'CH' for Switzerland... wait, Helios", CASES, failing={"A01"}) is None
+    assert leaks_expected("Helios owes most", CASES, failing={"L05"}) == "L05:Helios"
 
 
 def test_changelog_row_matches_header():

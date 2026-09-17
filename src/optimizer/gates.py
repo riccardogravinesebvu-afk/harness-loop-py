@@ -55,11 +55,17 @@ def _literals(case: dict) -> list[str]:
     return out
 
 
-def leaks_expected(content: str, cases: list[dict]) -> str | None:
-    """Returns the leaked literal if the content spells out an expected answer of a visible case."""
+def leaks_expected(content: str, cases: list[dict], failing: set[str] | None = None) -> str | None:
+    """Returns the leaked literal if the content spells out an expected answer of a visible case.
+
+    `failing` restricts the check to those case ids: the optimizer only sees `expected` for
+    failing cases, and a passing case's accepted answer can be a general-knowledge word
+    (loop 2026-09-17: "Switzerland" in an ISO-code list blocked three hypotheses in a row)."""
     flat = re.sub(r"[,.\s]", "", content.lower())
     for c in cases:
         if c.get("split", "visible") != "visible":
+            continue
+        if failing is not None and c["id"] not in failing:
             continue
         for lit in _literals(c):
             if re.sub(r"[,.\s]", "", lit.lower()) in flat:
