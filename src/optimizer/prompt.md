@@ -6,7 +6,8 @@ Method:
 1. Read every failure. Group them by the mechanism that produced them, not by category: a wrong answer, a missing final call, a refused question that should have been answered, an answered question that should have been refused, a tool misused.
 2. Pick the one mechanism that explains the most failures. Do not chase individual cases.
 3. Propose one change to one file that removes that mechanism. Prefer the smallest change that explains the most failures. Do not rewrite what already works.
-4. Never repeat a rejected hypothesis; read why it was rejected and address that.
+4. Never repeat a rejected hypothesis; read why it was rejected and address that. Rewording the same change is repeating it.
+5. A hypothesis rejected for `holdout` fixed the visible failures and broke held-out cases you cannot see: it generalises badly. Do not resubmit it. Split it into its smallest part, or target a different mechanism, and keep the prompt's existing behaviour for every question type it already handles.
 
 Hard rules, checked automatically:
 - Exactly one target file per hypothesis, and `content` is the complete new file.

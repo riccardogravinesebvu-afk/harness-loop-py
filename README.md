@@ -8,7 +8,7 @@ An optimizer agent that improves another agent by iterating on evals: propose a 
 
 ## Status
 
-Day 3 of 6: agent under test, 40-case dataset, checks and LLM judge, eval runner with Langfuse traces, and the optimizer loop with branch per hypothesis, regression gate, budget stop and changelog. First curve below. Next: gate and budget evidence across more iterations (day 4), feedback endpoint (day 5), variance and charts (day 6).
+Day 4 of 6: agent under test, 40-case dataset, checks and LLM judge, eval runner with Langfuse traces, optimizer loop with branch per hypothesis, regression gate, budget stop and changelog. Three loops run, 10 hypotheses, gate and budget evidence below. Next: feedback endpoint (day 5), variance and charts (day 6).
 
 Design: `docs/plans/2026-09-11-harness-loop-py-design.md`. Decisions: `docs/PRD.md` §11 (day 1) and §12 (days 2-6).
 
@@ -28,9 +28,9 @@ An earlier run of the same prompts ([`2026-09-16T141714+0000.json`](evals/result
 
 The starting prompt is one sentence and the tool descriptions are one line each, on purpose: the agent does not know the schema, explores it with SQL until it hits the step cap, answers in prose instead of calling `final_answer`, and never refuses. That is the surface the optimizer gets to work on. The curves below stay empty until the loop runs.
 
-### First optimizer loop
+### Optimizer loops
 
-`just loop max=6`, stopped by the budget rule after 4 hypotheses. Loop file: [`evals/results/loops/2026-09-16T224557+0000.json`](evals/results/loops/2026-09-16T224557+0000.json); one results file per evaluated iteration, linked in [`CHANGELOG.md`](CHANGELOG.md). Optimizer `claude-sonnet-4-6`, agent `claude-haiku-4-5-20251001`, seed 42.
+**Loop 1**: `just loop max=6`, stopped by the budget rule after 4 hypotheses. Loop file: [`evals/results/loops/2026-09-16T224557+0000.json`](evals/results/loops/2026-09-16T224557+0000.json); one results file per evaluated iteration, linked in [`CHANGELOG.md`](CHANGELOG.md). Optimizer `claude-sonnet-4-6`, agent `claude-haiku-4-5-20251001`, seed 42.
 
 | iteration | hypothesis (branch) | verdict | visible | holdout | lookup / aggr / reasoning / refusal (visible) | cost € | cumulative € |
 |---|---|---|---|---|---|---|---|
@@ -41,19 +41,34 @@ The starting prompt is one sentence and the tool descriptions are one line each,
 | 4 | same, without the literal (`hyp/4`) | rejected: holdout fell | 100% | 70% | 100 / 100 / 100 / 100 | 0.33 | 1.11 |
 | stop | budget: the last 3 hypotheses bought 0 points per euro, threshold 0.03 | | | | | | 1.11 |
 
-What the table shows, and what it does not:
+**Loops 2 and 3** (next day, from the accepted prompt, €3 authorised in total): loop files [`2026-09-17T085216+0000.json`](evals/results/loops/2026-09-17T085216+0000.json) and [`2026-09-17T085632+0000.json`](evals/results/loops/2026-09-17T085632+0000.json), rows 5-10 of the changelog.
+
+| loop | iteration | hypothesis | verdict | visible | holdout | cost € |
+|---|---|---|---|---|---|---|
+| 2 | 0 | baseline of the accepted prompt | — | 87% | 80% | 0.37 |
+| 2 | 5, 6, 7 | ISO country codes + ordering rules, three wordings | rejected before eval: anti-leak on `Switzerland` (see below) | — | — | 0.04 each |
+| 2 | stop | budget, €0.39 spent | | | | |
+| 3 | 0 | baseline again | — | 87% | 80% | 0.37 |
+| 3 | 8 | ISO country codes + overdue-invoice reasoning | rejected: holdout | 97% | 70% | 0.32 |
+| 3 | 9 | same, reworded | rejected: holdout | 97% | 60% | 0.32 |
+| 3 | 10 | same, reworded | rejected: holdout | 97% | 70% | 0.34 |
+| 3 | stop | budget, €1.24 spent | | | | |
+
+What the tables show, and what they do not:
 
 - **One hypothesis did almost all the work.** The optimizer read the agent's code, put the schema, the outstanding/overdue arithmetic, the refusal policy and "always call `final_answer`" into the system prompt: visible 50% → 90%, holdout 40% → 80%, refusal 0 → 100%. The 40-case dataset is small on purpose; the curve is short because the first fix was the right one.
-- **The holdout gate rejected a 100%-visible prompt.** Hypothesis 4 fixes the three remaining visible failures and loses one held-out reasoning case (`R06`, judged as reporting a figure not present in the tool outputs). With 10 holdout cases the gate's resolution is one case, and one judged case is also the run-to-run noise we observe (see below), so this is a conservative rejection, not proof of overfitting. It is what the gate is for.
-- **The anti-leak check has false positives.** Hypotheses 2 and 3 were rejected without an eval because the prompt listed ISO country codes and the word `Switzerland` is an accepted answer of a visible case. The rule is mechanical by design (an expected value in the prompt is rejected, no judgement call); it cost €0.08 and two iterations. The optimizer got past it on the third try by dropping the literal.
-- **Run-to-run noise is about one case.** The loop's baseline (47.5%) differs from the day-2 baseline (45%) by one judged reasoning case (`R08`) that flipped. Every eval runs at temperature 0; the endpoint ignores `seed`.
-- **The budget rule fired for the right reason.** Three hypotheses in a row left the best visible pass rate unchanged; gain per euro over that window was 0.
+- **The holdout gate caught a real overfit, four times.** Hypotheses 4, 8, 9 and 10 are the same idea (ISO country codes, rules for "oldest overdue invoice"): each fixes the same three visible cases (`L09`, two reasoning cases) and each loses held-out cases the optimizer never sees. In loop 3 the lost case is always `F08`, a refusal ("What was Helios Energy's revenue last year?"): with the longer prompt the agent still declines in words but stops setting `refused=true` in `final_answer`, so the structured check fails. Loop 1's rejection (hypothesis 4) lost one judged reasoning case instead. One flip could be noise (see below); the same flip on four independent runs is not. A per-category gate on visible cases alone would have accepted all four.
+- **The per-category gate has not fired yet.** In 10 hypotheses no accepted-on-visible change lowered a visible category; the rejections came from the holdout. The category rule is exercised by unit tests (`tests/test_optimizer.py`), not yet by a real hypothesis.
+- **The anti-leak check had a false positive, now fixed.** Hypotheses 2, 3, 5, 6 and 7 were rejected without an eval because the prompt listed ISO codes ("`'CH'` for Switzerland") and `Switzerland` is an accepted answer of `L02`, a case that already passed. The check now covers only failing visible cases, exactly the ones whose expected value the optimizer is shown (PRD §12 D4, amended). Cost of the false positive: €0.21 and five iterations.
+- **The optimizer repeats itself.** After a holdout rejection it resubmitted the same change with new wording three times. The optimizer prompt now says that rewording is repeating and that a holdout rejection means the change must shrink or move to a different mechanism (`src/optimizer/prompt.md`, rule 5). Untested until the next loop; it is written down here so the next curve can be read against it.
+- **Run-to-run noise is about one case.** Baselines of the same prompt: 45% and 47.5% on day 2 (one judged case, `R08`), 90% and 87% visible after hypothesis 1 (one judged case, `R03`). Every eval runs at temperature 0; the endpoint ignores `seed`.
+- **The budget rule fired three times for the right reason.** Each time, three hypotheses in a row left the best visible pass rate unchanged; gain per euro over that window was 0.
 
 | Metric | Value | Results file |
 |---|---|---|
-| pass rate per iteration, total, per category, visible and holdout | table above | loop file above |
-| cost per iteration, marginal gain per euro, stop point | table above, stop at iteration 4 | loop file above |
-| hypotheses rejected by the category gate | 0 by category, 1 by holdout, 2 by anti-leak | `CHANGELOG.md` |
+| pass rate per iteration, total, per category, visible and holdout | tables above | three loop files above |
+| cost per iteration, marginal gain per euro, stop point | tables above; budget stop at iterations 4, 7, 10 | three loop files above |
+| hypotheses rejected by the gate | 0 by visible category, 4 by holdout, 5 by anti-leak (of 10) | `CHANGELOG.md` |
 | iterations to recover a case flagged via feedback | _day 5_ | — |
 | variance over 3 runs at temperature 0 | _day 6_ | — |
 
