@@ -29,3 +29,4 @@ stop: budget after hyp/10 (loop 2026-09-17T085632+0000, 1.24 €)
 
 stop: max_iterations after hyp/13 (loop 2026-09-17T162024+0000, 0.90 €)
 
+| 14 | hyp/14 | dd4875a | system.md | Teach agent to include payment date when describing paid invoices in reliability analysis | rejected: no_gain | -6.5pp | 0/0/-2/0 | -10.0pp | 0.33 | 0.60 | evals/results/2026-09-17T165238+0000.json |

@@ -169,3 +169,11 @@ cases:
   check: judge
   why: Tests that the agent uses julianday or compute to derive elapsed days rather
     than stating months vaguely.
+- hypothesis: hyp/14
+  category: reasoning
+  input: Did Gallo Ristorazione pay INV-020 on time?
+  expected: Yes. INV-020 was due 2026-07-31 and was paid on 2026-07-30, one day before
+    the due date.
+  check: judge
+  why: Tests that the agent retrieves and reports the paid_at date for a specific
+    invoice and compares it to due_at.

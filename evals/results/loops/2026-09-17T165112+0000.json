@@ -49,8 +49,49 @@
       "cumulative_eur": 0.2644,
       "results_file": "evals/results/2026-09-17T165113+0000.json",
       "best_visible": 0.9677
+    },
+    {
+      "n": 14,
+      "hyp_id": "hyp/14",
+      "sha": "dd4875a",
+      "target": "system.md",
+      "title": "Teach agent to include payment date when describing paid invoices in reliability analysis",
+      "verdict": "rejected: no_gain",
+      "reason": "no_gain",
+      "visible": 0.9032,
+      "holdout": 0.6,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 1.0,
+        "reasoning": 0.625,
+        "refusal": 1.0
+      },
+      "visible_delta": -0.0645,
+      "holdout_delta": -0.09999999999999998,
+      "holdout_confirm": null,
+      "delta_cases": {
+        "lookup": 0,
+        "aggregation": 0,
+        "reasoning": -2,
+        "refusal": 0
+      },
+      "cost_eur": {
+        "eval": 0.2948,
+        "optimizer": 0.0369,
+        "total": 0.3317
+      },
+      "cumulative_eur": 0.5961,
+      "results_file": "evals/results/2026-09-17T165238+0000.json",
+      "best_visible": 0.9677
     }
   ],
   "stop": null,
-  "feedback": {}
+  "feedback": {
+    "FB01": {
+      "ref": "L09",
+      "note": "Asked for customers in Italy: the answer lists nobody. The ledger has Italian customers; country is stored as a code, not a name.",
+      "flagged_before_iteration": 14,
+      "recovered_at_iteration": null
+    }
+  }
 }
