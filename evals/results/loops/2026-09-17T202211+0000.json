@@ -117,9 +117,46 @@
       "cumulative_eur": 0.9162,
       "results_file": "evals/results/2026-09-17T202458+0000.json",
       "best_visible": 0.9714
+    },
+    {
+      "n": 19,
+      "hyp_id": "hyp/19",
+      "sha": "13ce745",
+      "target": "system.md",
+      "title": "Add \"will X pay by date?\" to refusal rules without over-broad prediction language",
+      "verdict": "rejected: no_gain",
+      "reason": "no_gain",
+      "visible": 0.9714,
+      "holdout": 0.9,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 1.0,
+        "reasoning": 1.0,
+        "refusal": 0.9
+      },
+      "visible_delta": 0.0,
+      "holdout_delta": 0.20000000000000007,
+      "holdout_confirm": null,
+      "delta_cases": {
+        "lookup": 0,
+        "aggregation": 0,
+        "reasoning": 0,
+        "refusal": 0
+      },
+      "cost_eur": {
+        "eval": 0.2848,
+        "optimizer": 0.034,
+        "total": 0.3188
+      },
+      "cumulative_eur": 1.235,
+      "results_file": "evals/results/2026-09-17T202620+0000.json",
+      "best_visible": 0.9714
     }
   ],
-  "stop": null,
+  "stop": {
+    "reason": "budget",
+    "at": 19
+  },
   "feedback": {
     "FB01": {
       "ref": "L09",

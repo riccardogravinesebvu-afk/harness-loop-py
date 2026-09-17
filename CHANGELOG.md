@@ -37,3 +37,7 @@ stop: budget after hyp/16 (loop 2026-09-17T165112+0000, 1.27 €)
 
 | 17 | hyp/17 | 7f28c65 | system.md | Teach agent to refuse future-payment prediction questions | rejected: no_gain | -5.7pp | 0/0/-3/+1 | +30.0pp | 0.31 | 0.60 | evals/results/2026-09-17T202334+0000.json |
 | 18 | hyp/18 | 893de70 | system.md | Add prediction/forecast questions to refusal rules | rejected: no_gain | -8.6pp | 0/0/-4/+1 | +0.0pp | 0.32 | 0.92 | evals/results/2026-09-17T202458+0000.json |
+| 19 | hyp/19 | 13ce745 | system.md | Add "will X pay by date?" to refusal rules without over-broad prediction language | rejected: no_gain | +0.0pp | 0/0/0/0 | +20.0pp | 0.32 | 1.24 | evals/results/2026-09-17T202620+0000.json |
+
+stop: budget after hyp/19 (loop 2026-09-17T202211+0000, 1.24 €)
+
