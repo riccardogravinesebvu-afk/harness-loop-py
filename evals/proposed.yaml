@@ -144,3 +144,21 @@ cases:
   check: contains
   why: Tests that the agent uses country code 'DE' not 'Germany' when filtering customers
     by country.
+- hypothesis: hyp/12
+  category: lookup
+  input: List all customers based in Germany.
+  expected: Alpine Foods GmbH
+  check: contains
+  why: Tests that the agent uses country code 'DE' not 'Germany' in the SQL query.
+- hypothesis: hyp/12
+  category: lookup
+  input: Which customers are from Spain?
+  expected: Casa Verde
+  check: contains
+  why: Tests that the agent uses country code 'ES' not 'Spain'.
+- hypothesis: hyp/12
+  category: lookup
+  input: List all customers from the Netherlands.
+  expected: Delta Logistics
+  check: contains
+  why: Tests that the agent uses country code 'NL' not 'Netherlands'.

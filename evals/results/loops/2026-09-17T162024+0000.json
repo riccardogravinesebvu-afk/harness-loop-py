@@ -82,6 +82,39 @@
       "cumulative_eur": 0.5599,
       "results_file": "evals/results/2026-09-17T162138+0000.json",
       "best_visible": 0.8387
+    },
+    {
+      "n": 12,
+      "hyp_id": "hyp/12",
+      "sha": "fe31e56",
+      "target": "tools.yaml",
+      "title": "Fix country code lookup via tools.yaml hint (not system.md)",
+      "verdict": "accepted",
+      "reason": null,
+      "visible": 0.9355,
+      "holdout": 0.8,
+      "per_category_visible": {
+        "aggregation": 1.0,
+        "lookup": 1.0,
+        "reasoning": 0.75,
+        "refusal": 1.0
+      },
+      "visible_delta": 0.0968,
+      "holdout_delta": 0.0,
+      "delta_cases": {
+        "lookup": 2,
+        "aggregation": 0,
+        "reasoning": 1,
+        "refusal": 0
+      },
+      "cost_eur": {
+        "eval": 0.2622,
+        "optimizer": 0.0355,
+        "total": 0.2977
+      },
+      "cumulative_eur": 0.8577,
+      "results_file": "evals/results/2026-09-17T163314+0000.json",
+      "best_visible": 0.9355
     }
   ],
   "stop": null,
@@ -90,7 +123,8 @@
       "ref": "L09",
       "note": "Asked for customers in Italy: the answer lists nobody. The ledger has Italian customers; country is stored as a code, not a name.",
       "flagged_before_iteration": 11,
-      "recovered_at_iteration": null
+      "recovered_at_iteration": 12,
+      "iterations_to_recover": 2
     }
   }
 }
