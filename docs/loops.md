@@ -49,15 +49,16 @@ Nothing accepted. €0.39 and €1.24.
 | 3 | 9 | same, reworded | rejected: holdout | 97% | 60% |
 | 3 | 10 | same, reworded | rejected: holdout | 97% | 70% |
 
-Loop 2 was entirely wasted on my own bug. The optimizer wanted to write "`'CH'` for Switzerland" into
-a list of ISO codes, and `Switzerland` happens to be the accepted answer of `L02`, a case that was
-already passing. My anti-leak check refused all three wordings without ever running an eval. €0.21
-and five iterations, gone. The check now looks only at cases that are currently failing, which are
-the only ones whose expected value the optimizer is ever shown.
+Loop 2 went entirely to a scope bug in my own check. The optimizer wanted "`'CH'` for Switzerland" in
+a list of ISO codes, and `Switzerland` is the accepted answer of `L02`, a case that was already
+passing. The anti-leak rule refused all three wordings without running an eval. Five rejections
+across the two loops, €0.21, no measurement. The check now considers only currently-failing cases,
+which are the only ones whose expected value the optimizer is shown.
 
-Loop 3 is the same idea, three more times, all rejected because the holdout dropped. At the time I
-wrote this up as the gate catching a real overfit four times over. The variance runs later showed
-that was half true: the case that keeps falling, `F08`, also flips on its own. More on that below.
+Loop 3 is the same idea three more times, all rejected on the holdout. The initial reading was that
+the gate had caught one overfit four times over. The replications below complicate that: the case
+that keeps falling, `F08`, also flips on its own, so the signal is part regression and part noise,
+and at one run per decision the gate could not separate them.
 
 The per-category gate, the thing I built first, never fired once. Not here, not in any later loop.
 It is covered by unit tests and nothing else.
@@ -87,9 +88,9 @@ rewording and moved the change to a different file, which is exactly what I'd ad
 after loop 3. And the fix that had failed the holdout four times inside `system.md` passed as a
 one-line tool description.
 
-That second one turned out to be luck. See the variance runs.
+The second of those turns out to be sampling. See the replications below.
 
-Also, another false positive: hypothesis 13 was killed because it mentioned `2026`, which is a year
+One more false positive from the same check: hypothesis 13 was refused for mentioning `2026`, a year
 inside a date in one reference. Fixed.
 
 ## Variance after hypothesis 12
@@ -119,9 +120,9 @@ So: a gate with one-case resolution, one run of evidence, and one case of noise.
 walked through it. The fix is in loop 5.
 
 Four cases fail in all three runs: `F04`, `R03`, `R04`, `R09`. Reading the judge's reasoning on
-`R03` and `R04`, it was penalising sums of figures the tools had returned separately, "5,250
-outstanding" when `run_sql` had returned 3,750 and 1,500. That's my rubric being wrong, not the
-agent. Also fixed below.
+`R03` and `R04`, it was penalising sums of figures the tools had returned separately: "5,250
+outstanding" against a tool output of 3,750 and 1,500. A rubric property, not an agent property.
+Addressed below.
 
 ## Loop 5, with holdout confirmation
 
@@ -220,5 +221,5 @@ results file, so nobody has to guess which is which.
 One case still fails: `F08`, which refuses in the right words and sets the wrong flag. The check is
 right to demand the flag, because a refusal the caller can't detect isn't a refusal.
 
-The remaining levers are mine, not the loop's: more cases, and something better than a boolean the
-model sets by hand.
+The remaining levers are outside the loop: more cases, and a refusal signal less fragile than a
+boolean the model has to remember to set.

@@ -2,90 +2,107 @@
 
 An optimizer agent that improves another agent by iterating on evals. It proposes one hypothesis,
 edits a prompt file on a git branch, re-runs the eval suite, keeps the change or rolls it back, and
-writes a line in the changelog. Then it does it again, until the money runs out or the gains do.
+records the result. Then it does it again, until the gains stop paying for themselves.
 
 The method is Alfonso Graziano's, from Nearform, and he presents it publicly (see [Origin](#origin)).
-There's no code published for it, so this is my own implementation in Python, on a domain of my own,
-with three things the talk doesn't cover: a cost budget that decides when to stop, a regression gate
-that watches individual eval categories and a held-out split, and a feedback endpoint that turns a
-human "this answer is wrong" into a weighted eval case.
+No code has been published for it, so this is an independent implementation in Python, on a domain of
+my own, with three additions the talk doesn't cover: a cost budget that decides when to stop, a
+regression gate that watches individual eval categories and a held-out split, and a feedback endpoint
+that turns a human verdict into a weighted eval case.
 
-Every number below comes out of a JSON file committed in `evals/results/`. If a number here has no
-file behind it, that's a bug.
+Every number below comes out of a JSON file committed in `evals/results/`. A number without a file
+behind it is a bug.
 
-## What happened
+## Setup
 
-Six loops, nineteen hypotheses, about €9.3 of API spend over two days.
+The agent under test answers questions about an invented SME ledger in SQLite (8 customers, 24
+invoices, 13 payments, reference date fixed at 2026-09-01) using three tools plus a structured
+`final_answer`. It starts with a one-sentence system prompt and one-line tool descriptions, so it
+doesn't know the schema and never refuses anything. That's the surface the optimizer works on, and
+the only surface: it can read the tool code, it can only write the two prompt files.
+
+The eval set is 44 hand-written cases in four categories, 34 visible to the optimizer and 10 held
+out. Most checks are deterministic; reasoning cases go to an LLM judge scoring against a reference
+written from the data. Six loops ran over two days: 19 hypotheses, about €9.3 of API spend, one
+results file per evaluated iteration.
+
+## Results
 
 | | total | visible | holdout | |
 |---|---|---|---|---|
-| starting prompt, one sentence long | 45% | 47% | 40% | [file](evals/results/2026-09-16T143601+0000.json) |
-| what the loop achieved on its own | 87% | 94% | 67% | mean of 3 runs |
-| same prompts, after I fixed the judge and added 4 cases | 91% | 97% | 70% | mean of 3 runs |
-| plus one hypothesis the gate rejected and I accepted by hand | 98% | 100% | 90% | [file](evals/results/2026-09-17T212958+0000.json) |
+| starting prompt | 45% | 47% | 40% | [file](evals/results/2026-09-16T143601+0000.json) |
+| after the loop, judge v1, 40 cases | 87% | 94% | 67% | mean of 3 replications |
+| same prompts, judge v2, 44 cases | 91% | 97% | 70% | mean of 3 replications |
+| plus one hypothesis accepted by hand over the gate | 98% | 100% | 90% | [file](evals/results/2026-09-17T212958+0000.json) |
 
-Those four rows are four different things, not one curve. Rows two and three are the same prompts
-measured two different ways; the agent didn't change between them, my rubric did. Row four is a
-human overriding the gate, on the record.
+Rows two and three are the same agent measured two ways, so the 4-point difference between them is
+rubric, not behaviour. Row four is a human overriding a gate decision, kept as a separate row so the
+loop's own curve stays clean.
 
 ![pass rate per iteration](docs/img/pass_rate.svg)
 
 ![cost vs pass rate](docs/img/cost.svg)
 
-The interesting part is not the 98%. It's that hypothesis 1 did almost all of the work, that the
-gate rejected five hypotheses that raised the visible score, and that I got one acceptance wrong and
-only found out by running the same prompts three times.
+Per-loop tables, every hypothesis and every verdict: [docs/loops.md](docs/loops.md).
 
-The blow-by-blow is in [docs/loops.md](docs/loops.md): every hypothesis, what it changed, why it was
-kept or thrown away, and what it cost.
+## Findings
 
-## What I got wrong
+**The gain is concentrated in one hypothesis.** Hypothesis 1 moved the visible rate from 50% to 90%
+and refusals from 0% to 100% in a single edit: the optimizer read `ledger.py` and `tools.py`, worked
+out that the agent had no schema, and wrote the schema, the overdue arithmetic and the refusal policy
+into the system prompt. The remaining 18 hypotheses produced one accepted change between them. Most
+of the value of this kind of loop appears to be in finding the first missing thing.
 
-This is the part I'd want to read first, so it goes near the top.
+**Single-run gating is unsound at this resolution.** With 10 holdout cases, one case is 10 points,
+and measured run-to-run noise was about one case. Hypothesis 12 passed the gate with the holdout at
+80%; three replications of those exact prompts put it at 67%, with the same case (`F08`) failing each
+time. A regression the gate had rejected four times passed on the fifth attempt because of sampling,
+not because of the change. The loop now re-runs the holdout before accepting and takes the lower of
+the two runs as the new bar, which costs about $0.10 per acceptance.
 
-**I accepted a hypothesis on a coin flip.** Hypothesis 12 passed the gate with the holdout at 80%.
-Three later runs of those exact prompts put it at 67%, every time. One holdout case, `F08`, refuses
-in words but doesn't set the `refused` flag, and it flips run to run. Ten holdout cases means one
-case is 10%, and my gate was making decisions on a single run. A real regression walked straight
-through it. The loop now re-runs the holdout before accepting anything and takes the lower of the
-two runs as the new bar.
+**The judging rubric moves the score more than most hypotheses do.** Judge v1 flagged any figure not
+literally present in the tool outputs, so "5,250 outstanding" failed when `run_sql` had returned
+3,750 and 1,500 separately. Judge v2 accepts sums, differences and counts as grounded. Same agent,
+same seed: +4 points total, and run-to-run flips went from 1 case in 40 to 0 in 44. Results files
+carry `judge_version` so numbers either side of that change are never pooled.
 
-**My anti-leak check cost me five iterations.** It refuses any hypothesis that writes an expected
-answer into the prompt, which is the right idea. But it was checking every visible case, including
-the ones already passing, so a list of ISO country codes containing the word `Switzerland` got
-killed five times across two loops, then a mention of the year `2026` got killed once more. Six
-iterations and €0.25 spent on nothing.
-It now checks only the cases that are currently failing, which are the only ones the optimizer is
-shown.
+**The optimizer only fixes what it can see.** Refusal failures of the prediction and external-fact
+kind sat in the holdout for five loops and were never targeted, because the optimizer is shown
+visible failures only. Adding one visible case of that class produced a working fix within three
+iterations, and that fix repaired the two held-out cases as well. Split design is not just an
+anti-overfitting device; it also decides what the loop is capable of noticing.
 
-**My judge was wrong about arithmetic.** It marked "5,250 outstanding" as an unsupported figure
-because the tools had returned 3,750 and 1,500 separately. Two reasoning cases failed across four loops
-over that. Judge v2 counts sums, differences and counts as supported, and results files now carry a
-`judge_version` so numbers from before and after are never averaged together.
+**Rejections outnumber acceptances by an order of magnitude, and that's the working state.** Of 19
+hypotheses: 2 accepted by the loop, 1 accepted by a human over the gate, 5 rejected on the holdout, 6
+on no visible gain, 6 refused before any eval ran. The budget rule ended five of the six loops, each
+time after three flat iterations.
 
-**The per-category gate, the feature I was proudest of, never fired.** Nineteen hypotheses and not
-one of them lowered a visible category while raising the total. Every real rejection came from the
-holdout or from no gain at all. It has unit tests and no field record.
+**The residual noise is in the structured flag, not the judge.** After the rubric fix, three
+back-to-back runs agree on all 44 cases except one: a refusal where the agent declines in the right
+words and leaves `refused=false`. The check demands the flag deliberately, because a refusal the
+caller can't detect isn't a refusal, so this is a real property of the agent rather than measurement
+error. It is also the last failing case.
 
-## What I added to the method
+## Limitations
 
-**A cost budget.** Each iteration's cost is computed locally from token usage, including the
-optimizer's own tokens and every rejected hypothesis, and the loop stops when the last three
-iterations bought less than `BUDGET_MIN_GAIN_PER_EUR` of pass rate per euro. There are hard ceilings
-on iterations and total euros too. The budget rule ended five of the six loops, every time after
-three flat iterations, which is roughly what I'd have done by hand.
+The dataset is small and single-domain: 44 cases, one ledger, one provider, one agent. Holdout
+resolution is 10 points per case, so any claim about a 1-case difference is at the noise floor.
 
-**A gate that can say no to an improvement.** A hypothesis is kept only if the visible pass rate
-rises, no category loses more than one visible case, and the held-out split doesn't fall on two
-separate runs. The optimizer never sees the holdout, and the tolerance isn't hardcoded, it's `1/n`
-computed from the dataset. Five hypotheses that raised the visible score were rejected on the
-holdout.
+Two accepted hypotheses is a small sample. Statements here about what the gate prevents are backed by
+its rejections, which are more numerous, not by a controlled comparison against a loop running
+without it.
 
-**Feedback that changes what the loop optimizes.** `POST /feedback` with a run's trace id and a note.
-If it's a dataset case, its weight doubles and my note shows up next to the failure the optimizer
-reads. If it's an ad-hoc question, it becomes a new judged case with the note as the reference. I
-flagged a case that had been failing since loop 1 and it came back two iterations later. The loop
-records that number itself.
+The per-category gate never fired in 19 hypotheses. Nothing raised the total while lowering a visible
+category, so that rule has unit tests and no field evidence.
+
+The optimizer, the judge and this write-up's conclusions all share a model family. Three of the four
+eval categories are deterministic and can't be flattered, and judged cases are scored against
+hand-written references at temperature 0, but the risk is structural and worth naming.
+
+The anti-leak check, which refuses hypotheses that write an expected answer into the prompt,
+initially scanned every visible case including passing ones. A list of ISO codes containing
+`Switzerland` and a mention of the year `2026` were refused on that basis: six iterations and €0.25
+spent before the scope was narrowed to currently-failing cases.
 
 ## Running it
 
@@ -98,48 +115,43 @@ just loop max=6        # baseline plus up to 6 hypotheses, about €0.35 per eva
 just feedback          # the feedback endpoint on :8765
 ```
 
-The loop won't start on a dirty working tree, so every number it produces is committed alongside the
-code that produced it. Accepted hypotheses fast-forward `main`; rejected ones leave their branch
-behind as `hyp/<n>` and only the evidence lands on `main`.
+The loop refuses to start on a dirty working tree, so every number is committed alongside the code
+that produced it. Accepted hypotheses fast-forward `main`; rejected ones leave their branch as
+`hyp/<n>` and only the evidence lands on `main`.
 
-Temperature is 0 everywhere and `EVAL_SEED` goes to the provider, but the Anthropic endpoint ignores
-seeds. With the current judge, three back-to-back runs came out identical across all 44 cases. The
-one case that can still flip is a refusal whose flag the model sets inconsistently.
+Temperature is 0 everywhere and `EVAL_SEED` is passed to the provider, though the Anthropic endpoint
+ignores it. `scripts/plot.py` regenerates the charts from the loop files; `scripts/variance.py` takes
+any number of results files and reports min/mean/max plus the cases that disagree.
 
-`uv run python scripts/plot.py` regenerates the charts from the loop files, and
-`scripts/variance.py` takes any number of results files and prints min/mean/max plus which cases
-disagree.
+## Implementation
 
-## How it works
+`src/optimizer/loop.py` is a LangGraph graph: baseline, propose, apply, evaluate, decide. The
+optimizer (Sonnet 4.6) is shown the current prompts, the agent's code, the pass rate per category,
+every failing visible case with the agent's answer and tool calls, and the changelog of what's
+already been tried. It returns one hypothesis: one target file and its complete new content. Two
+static checks run before any eval is spent, on length and on leaked expected values.
 
-The agent under test is a small LangGraph graph over an invented SME ledger in SQLite: 8 customers,
-24 invoices, 13 payments, reference date fixed at 2026-09-01. One LLM node on Haiku 4.5, one tool
-node, and four tools, `run_sql` (read-only), `lookup_customer`, `compute`, and `final_answer(answer,
-refused)`, which ends the run. The structured output is a tool call, never parsed prose. The
-optimizer may edit `prompts/system.md` and `prompts/tools.yaml`. Nothing else, ever, and it knows it
-can read the tool code but not change it.
+The gate keeps a hypothesis only if the visible rate rises, no category loses more than one visible
+case (tolerance `1/n`, computed from the dataset), and the holdout doesn't fall on two separate runs.
+Cost per iteration is computed from token usage against a local price table, includes the optimizer's
+own tokens and every rejected hypothesis, and drives the stop rule.
 
-The dataset is 44 hand-written cases in `evals/dataset.yaml`, four categories, 34 visible and 10 held
-out. Most checks are deterministic: exact match, substring, numeric with tolerance, and the
-structured `refused` flag. Reasoning cases go to a judge on Sonnet 4.6 that scores correctness,
-grounding and completeness against a reference I wrote from the data, with a penalty for figures
-that aren't in the tool outputs. Cases get added, never weakened. That rule is in `CLAUDE.md` and
-it held for the whole project.
+The optimizer can also propose eval cases. They land in `evals/proposed.yaml` and stay there until a
+human moves them, because a loop that writes its own exams isn't measuring anything. Cases in the
+dataset get added, never weakened; that rule is in `CLAUDE.md` and it held for the whole project.
 
-The loop itself is `src/optimizer/loop.py`, another LangGraph graph: baseline, propose, apply,
-evaluate, decide. The optimizer sees the current prompts, the agent's code, the pass rate per
-category, every failing visible case with the agent's answer and its tool calls, and the changelog of
-what's already been tried. Its own prompt describes the method and says nothing about ledgers. It can
-also propose new eval cases, which land in `evals/proposed.yaml` and stay there until a human moves
-them, because a loop that writes its own exams isn't measuring anything.
+`POST /feedback` takes a run's trace id and a note. A dataset case doubles in weight and the note
+appears beside the failure the optimizer reads; an ad-hoc question becomes a new judged case with the
+note as its reference. A case flagged this way, failing since loop 1, came back two iterations later,
+and the loop records that number itself.
 
-Langfuse is optional. With keys, each eval run of each case is one trace with an `eval_context` span
-carrying the case, the verdict and the cost. Without keys, nothing is sent and nothing breaks. The
-trace id is derived locally either way, which is what lets the feedback endpoint find a run again.
+Langfuse is optional: with keys, each eval run of each case is one trace carrying the case, the
+verdict and the cost. The trace id is derived locally either way, which is what lets the feedback
+endpoint find a run again without it.
 
 ## Origin
 
-The method comes from Alfonso Graziano (Nearform) and his talk
+The method comes from Alfonso Graziano (Nearform), in the talk
 ["Agents Building Agents"](https://www.youtube.com/watch?v=aHhB3sjGjkI)
 ([summary](https://daily.dev/posts/agents-building-agents---alfonso-graziano-nearform-p61ktlb5k)):
 an optimizer agent that generates hypotheses, edits the agent, runs the evals and rolls back
@@ -148,15 +160,15 @@ Karpathy's auto-research as the stated inspiration. His article
 ["From AI prototype to production"](https://nearform.com/digital-community/from-ai-prototype-to-production-how-to-build-evals-for-reliable-agents/)
 covers the eval side. Both read on 2026-09-17.
 
-Nearform hasn't published code for any of it. This is an independent reimplementation of the
-described method, in Python, on a domain I made up, and the 18% to 83% figure is theirs. I don't
-reproduce it and I don't claim it. The numbers here are mine, on my dataset, with my mistakes in
-them.
+Nearform has published no code for it. This is an independent reimplementation of the described
+method, on a different domain. The 18% to 83% figure is theirs; it is not reproduced here and not
+claimed here.
 
-Eval-driven development, LLM-as-a-judge and a branch per hypothesis are common knowledge, not
-his. The talk also describes a second loop over production traces and user feedback, so the idea of
-feedback in the loop isn't mine either; what I added is turning it into weighted eval cases with a
-measured recovery time. The budget, the category and holdout gate, and the confirmation run are mine.
+Eval-driven development, LLM-as-a-judge and a branch per hypothesis are common background rather than
+his. The talk also describes a second loop over production traces and user feedback, so feedback in
+the loop is not my idea either; the addition here is turning it into weighted eval cases with a
+measured recovery time. The cost budget, the category and holdout gate, and the confirmation run are
+mine.
 
 No code from that work, or from any employer, is in this repository.
 
