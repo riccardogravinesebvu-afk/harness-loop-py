@@ -5,10 +5,10 @@ edits a prompt file on a git branch, re-runs the eval suite, keeps the change or
 records the result. Then it does it again, until the gains stop paying for themselves.
 
 The method is Alfonso Graziano's, from Nearform, and he presents it publicly (see [Origin](#origin)).
-No code has been published for it, so this is an independent implementation in Python, on a domain of
-my own, with three additions the talk doesn't cover: a cost budget that decides when to stop, a
-regression gate that watches individual eval categories and a held-out split, and a feedback endpoint
-that turns a human verdict into a weighted eval case.
+His own implementation is public too, in TypeScript. This one is written from the talk, in Python, on
+a domain of my own, and differs where it matters most: the rule that decides whether a change is kept.
+His is a hand-written tolerance band on aggregate accuracy. Mine has to clear three separate bars,
+one of them on cases the optimizer never sees, confirmed by a second run.
 
 Every number below comes out of a JSON file committed in `evals/results/`. A number without a file
 behind it is a bug.
@@ -160,9 +160,27 @@ Karpathy's auto-research as the stated inspiration. His article
 ["From AI prototype to production"](https://nearform.com/digital-community/from-ai-prototype-to-production-how-to-build-evals-for-reliable-agents/)
 covers the eval side. Both read on 2026-09-17.
 
-Nearform has published no code for it. This is an independent reimplementation of the described
-method, on a different domain. The 18% to 83% figure is theirs; it is not reproduced here and not
-claimed here.
+His implementation is public: [`alfonsograziano/auto-agent`](https://github.com/alfonsograziano/auto-agent)
+(TypeScript, MIT, sponsored by Nearform) with its target repo
+[`auto-agent-demo`](https://github.com/alfonsograziano/auto-agent-demo), a Mastra math agent and a
+60-case golden dataset. I built this from the talk and found the repository afterwards, which is why
+none of its code is here and why the two designs diverge where they do.
+
+Read side by side, the loop is the same shape and the accept rule is not:
+
+| | auto-agent | here |
+|---|---|---|
+| keeps a change when | accuracy improves, or dips within a hand-written ~1-2pp band the LLM judges "structurally sound" | the visible rate strictly rises, no category loses more than one case, the holdout does not fall on either of two runs |
+| held-out split | none | 10 cases, in the gate, never shown to the optimizer |
+| stops when | `--max-iterations` (default 5) | marginal pass-rate gain per euro falls below a threshold over a 3-iteration window, or a hard cap |
+| cost and latency | fields in the job template, injected into the optimizer's prompt; the spec lists multi-metric constraints as out of scope | computed from token usage, includes rejected hypotheses, drives the stop rule |
+| the optimizer may edit | system prompts, tool descriptions, tool code, new tools | two prompt files, nothing else |
+| memory across iterations | `MEMORY.md` the optimizer maintains | the changelog rows, passed back as context |
+
+His optimizer has the larger surface and mine has the stricter gate. The 18% to 83% figure is his; it
+is not reproduced here and not claimed here. On his own account that baseline is a deliberate floor:
+the agent has no tools, and 18% is what the model answers from its weights alone. The number of his
+worth comparing against is the second one, 67% to 86% on an agent people had already tuned by hand.
 
 Eval-driven development, LLM-as-a-judge and a branch per hypothesis are common background rather than
 his. The talk also describes a second loop over production traces and user feedback, so feedback in
@@ -171,6 +189,39 @@ measured recovery time. The cost budget, the category and holdout gate, and the 
 mine.
 
 No code from that work, or from any employer, is in this repository.
+
+## Prior art
+
+The loop is not new and he does not claim it is: his README credits Karpathy's autoresearch in its
+first line. Writing it down for anyone who knows the field:
+
+- **The primitive.** A candidate per git commit, evaluated, kept or restored, under a budgeted
+  evaluator, is published as [VeRO](https://arxiv.org/abs/2602.22480) (Feb 2026), which predates
+  `auto-agent`, and as [HarnessOpt-Bench](https://arxiv.org/abs/2608.06301) (Aug 2026).
+- **The gate.** [Self-Harness](https://arxiv.org/abs/2606.09498) accepts only when held-in and
+  held-out both fail to regress, which is the same instinct as the rule here.
+  [GRASP](https://arxiv.org/abs/2605.29668) (EMNLP 2026) admits a candidate on a balanced held-out
+  probe stratified by task type under a hard regression budget, which is the nearest published thing
+  to a per-category gate. [GEPA](https://arxiv.org/abs/2507.19457) keeps a Pareto front over
+  individual instances, but to choose the next parent, not to accept.
+- **The optimizers.** [OPRO](https://arxiv.org/abs/2309.03409) hill-climbs on a scored history with
+  no rollback; [DSPy MIPROv2](https://arxiv.org/abs/2406.11695) runs Bayesian optimization over
+  instruction and demo combinations; [TextGrad](https://arxiv.org/abs/2406.07496) backpropagates
+  natural-language gradients and accepts every step. All of them optimize more systematically than a
+  single hypothesis per iteration.
+- **The result I reproduced without meaning to.**
+  [HarnessDev](https://arxiv.org/abs/2609.01437) (Sep 2026) reports that evolution gains on the
+  visible set often shrink or reverse on held-out tasks. Five of my nineteen hypotheses were rejected
+  for exactly that, before I had read it.
+- **The critique this design has to answer.** [ACE](https://arxiv.org/abs/2510.04618) names *context
+  collapse*: an optimizer that regenerates a whole prompt each round drifts towards shorter, blander
+  text and loses detail. Hypotheses here are full-file rewrites (a deliberate choice, because
+  LLM-written diffs corrupt whitespace), so the length cap is the only thing standing against it and
+  no measurement here rules it out.
+
+What is left after all that is not the loop. It is the accept rule when the eval suite is small,
+noisy and expensive, which is the regime both his 60 cases and my 44 are in, and where one case is
+worth ten points. The findings above are about that, and so are the three additions.
 
 ## License
 
